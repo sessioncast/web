@@ -2,8 +2,34 @@ export type Language = 'ko' | 'en';
 
 export const translations = {
   ko: {
+    // Welcome Modal
+    welcomeTitle: 'SessionCast에 오신 것을 환영합니다!',
+    welcomeSubtitle: '터미널 세션을 실시간으로 공유하고 협업하세요',
+    welcomeConnect: '내 터미널 연결하기',
+    welcomeDemo: '데모 세션 보기',
+    welcomeTour: '사용 시나리오 보기',
+    welcomeSkip: '나중에 하기',
+    welcomeBack: '뒤로',
+
+    // Scenarios
+    scenarioTitle: '어떻게 사용하실 건가요?',
+    scenarioSubtitle: '사용 목적에 맞는 가이드를 제공해 드릴게요',
+    scenarioTeam: '팀원에게 공유',
+    scenarioTeamDesc: '작업 화면을 실시간으로 공유',
+    scenarioCicd: 'CI/CD 모니터링',
+    scenarioCicdDesc: '빌드/배포 로그 실시간 확인',
+    scenarioStreaming: '라이브 코딩',
+    scenarioStreamingDesc: '코딩 과정을 스트리밍',
+    scenarioDebug: '원격 디버깅',
+    scenarioDebugDesc: '서버 문제 원격 해결',
+
+    // Demo
+    demoTitle: '데모 세션',
+    demoHint: '이렇게 터미널이 실시간으로 스트리밍됩니다!',
+    demoStart: '내 터미널도 연결하기',
+
     // Onboarding
-    welcome: 'TMUX Remote에 오신 것을 환영합니다',
+    welcome: 'SessionCast에 오신 것을 환영합니다',
     noMachines: '아직 연결된 머신이 없습니다. 아래 단계를 따라 시작하세요.',
 
     // Setup steps
@@ -46,7 +72,7 @@ export const translations = {
     tokenNotFound: '토큰을 찾을 수 없거나 소유하지 않습니다',
 
     // Login
-    loginTitle: 'TMUX Remote',
+    loginTitle: 'SessionCast',
     loginSubtitle: '어디서나 터미널에 접속하세요',
     loginWithGoogle: 'Google로 로그인',
     domainNotAllowed: '허용되지 않은 도메인입니다',
@@ -64,8 +90,34 @@ export const translations = {
   },
 
   en: {
+    // Welcome Modal
+    welcomeTitle: 'Welcome to SessionCast!',
+    welcomeSubtitle: 'Share and collaborate on terminal sessions in real-time',
+    welcomeConnect: 'Connect My Terminal',
+    welcomeDemo: 'View Demo Session',
+    welcomeTour: 'Browse Use Cases',
+    welcomeSkip: 'Skip for now',
+    welcomeBack: 'Back',
+
+    // Scenarios
+    scenarioTitle: 'How will you use SessionCast?',
+    scenarioSubtitle: 'We\'ll guide you based on your use case',
+    scenarioTeam: 'Share with Team',
+    scenarioTeamDesc: 'Share your screen in real-time',
+    scenarioCicd: 'CI/CD Monitoring',
+    scenarioCicdDesc: 'Watch build/deploy logs live',
+    scenarioStreaming: 'Live Coding',
+    scenarioStreamingDesc: 'Stream your coding sessions',
+    scenarioDebug: 'Remote Debugging',
+    scenarioDebugDesc: 'Debug server issues remotely',
+
+    // Demo
+    demoTitle: 'Demo Session',
+    demoHint: 'This is how terminals are streamed in real-time!',
+    demoStart: 'Connect My Terminal',
+
     // Onboarding
-    welcome: 'Welcome to TMUX Remote',
+    welcome: 'Welcome to SessionCast',
     noMachines: 'No connected machines yet. Follow the steps below to get started.',
 
     // Setup steps
@@ -108,7 +160,7 @@ export const translations = {
     tokenNotFound: 'Token not found or not owned by you',
 
     // Login
-    loginTitle: 'TMUX Remote',
+    loginTitle: 'SessionCast',
     loginSubtitle: 'Access your terminals from anywhere',
     loginWithGoogle: 'Sign in with Google',
     domainNotAllowed: 'Domain not allowed',
