@@ -6,7 +6,32 @@ interface LoginProps {
   onLoginSuccess: (token: string) => void;
 }
 
-const API_URL = window.location.origin;
+// Auth Server URL - use localhost for development
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const AUTH_URL = isLocalhost ? 'http://localhost:22081' : 'https://auth.sessioncast.io';
+const CLIENT_ID = 'sessioncast-platform';
+const CLIENT_SECRET = 'Zqvg5foaN3ZCtd4sGLumgeTZ6azGBXK7';
+const REDIRECT_URI = `${window.location.origin}/auth/callback`;
+
+// PKCE helper functions
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
 
 export function Login({ onLoginSuccess }: LoginProps) {
   const { t, lang, setLang } = useLanguage();
@@ -14,17 +39,24 @@ export function Login({ onLoginSuccess }: LoginProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check for token in URL (redirect from OAuth)
+    // Check for authorization code in URL (redirect from Auth Server)
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const code = params.get('code');
     const errorParam = params.get('error');
 
+    // Legacy: check for direct token (from old flow)
+    const token = params.get('token');
+
     if (token) {
-      // Store token and notify parent
       localStorage.setItem('auth_token', token);
       onLoginSuccess(token);
-      // Clean URL
       window.history.replaceState({}, document.title, '/');
+      return;
+    }
+
+    if (code) {
+      // Exchange code for token
+      exchangeCodeForToken(code);
     }
 
     if (errorParam) {
@@ -33,15 +65,69 @@ export function Login({ onLoginSuccess }: LoginProps) {
       } else if (errorParam === 'oauth_failed') {
         setError(t('loginFailed'));
       } else {
-        setError(t('loginFailed'));
+        setError(errorParam);
       }
+      window.history.replaceState({}, document.title, '/');
     }
   }, [onLoginSuccess, t]);
 
-  const handleGoogleLogin = () => {
+  const exchangeCodeForToken = async (code: string) => {
     setLoading(true);
-    // Redirect to Spring Security OAuth2 endpoint
-    window.location.href = `${API_URL}/oauth2/authorization/google`;
+    try {
+      const codeVerifier = sessionStorage.getItem('code_verifier');
+      sessionStorage.removeItem('code_verifier');
+
+      const params = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        ...(codeVerifier && { code_verifier: codeVerifier }),
+      });
+
+      const response = await fetch(`${AUTH_URL}/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error_description || 'Token exchange failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('auth_token', data.access_token);
+      onLoginSuccess(data.access_token);
+      window.history.replaceState({}, document.title, '/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+
+    // Generate PKCE code verifier and challenge
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+    // Store code verifier for later
+    sessionStorage.setItem('code_verifier', codeVerifier);
+
+    // Redirect to Auth Server
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: 'code',
+      scope: 'openid profile email',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    });
+
+    window.location.href = `${AUTH_URL}/oauth/authorize?${params.toString()}`;
   };
 
   const toggleLanguage = () => {

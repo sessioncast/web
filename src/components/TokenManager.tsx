@@ -7,7 +7,11 @@ interface TokenManagerProps {
   onClose: () => void;
 }
 
-const API_URL = `${window.location.protocol}//${window.location.host}`;
+// API URL - use Platform API server, not app server
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocalhost
+  ? `${window.location.protocol}//${window.location.hostname}:8080`
+  : 'https://api.sessioncast.io';
 
 export function TokenManager({ authToken, onClose }: TokenManagerProps) {
   const { t } = useLanguage();

@@ -9,8 +9,11 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { SessionInfo } from './types';
 import './App.css';
 
-const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_URL = `${WS_PROTOCOL}//${window.location.host}/ws`;
+// WebSocket URL - use relay server, not app server
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const WS_URL = isLocalhost
+  ? `ws://${window.location.hostname}:8080/ws`
+  : 'wss://relay.sessioncast.io/ws';
 
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() => {
