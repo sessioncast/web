@@ -143,13 +143,13 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
         <div className="login-header">
           <div className="login-logo">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect x="4" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
-              <rect x="24" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
-              <rect x="4" y="28" width="16" height="12" rx="3" fill="#ff6b35"/>
+            <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="8" width="16" height="16" rx="3" fill="#8b5cf6"/>
+              <rect x="24" y="8" width="16" height="16" rx="3" fill="#8b5cf6"/>
+              <rect x="4" y="28" width="16" height="12" rx="3" fill="#8b5cf6"/>
             </svg>
           </div>
-          <h1>{t('loginTitle')}</h1>
+          <h1>Session<span className="title-highlight">Cast</span></h1>
           <p>{t('loginSubtitle')}</p>
         </div>
 

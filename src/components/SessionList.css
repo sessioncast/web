@@ -32,6 +32,10 @@
   letter-spacing: -0.3px;
 }
 
+.logo-highlight {
+  color: #8b5cf6;
+}
+
 /* Header Actions Row */
 .header-actions-row {
   display: flex;

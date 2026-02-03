@@ -55,6 +55,10 @@
   margin-bottom: 8px;
 }
 
+.title-highlight {
+  color: #8b5cf6;
+}
+
 .login-header p {
   font-size: 14px;
   color: var(--text-secondary);

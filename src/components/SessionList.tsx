@@ -84,11 +84,11 @@ export function SessionList({ sessions, currentSession, onSelectSession, theme, 
       <div className="session-list-header">
         <div className="brand-logo">
           <svg className="logo-svg" width="32" height="32" viewBox="0 0 48 48" fill="none">
-            <rect x="4" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
-            <rect x="24" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
-            <rect x="4" y="28" width="16" height="12" rx="3" fill="#ff6b35"/>
+            <rect x="4" y="8" width="16" height="16" rx="3" fill="#8b5cf6"/>
+            <rect x="24" y="8" width="16" height="16" rx="3" fill="#8b5cf6"/>
+            <rect x="4" y="28" width="16" height="12" rx="3" fill="#8b5cf6"/>
           </svg>
-          <span className="logo-text">SessionCast</span>
+          <span className="logo-text">Session<span className="logo-highlight">Cast</span></span>
         </div>
       </div>
       <div className="header-actions-row">
