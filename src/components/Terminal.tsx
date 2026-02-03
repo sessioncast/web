@@ -155,7 +155,7 @@ export function Terminal({
   }, [writeToTerminal]);
 
   return (
-    <div className="terminal-container">
+    <div className="terminal-container" data-tour="terminal">
       <div className="terminal-header">
         <div className="header-left">
           <span className={`connection-status ${connectionStatus}`} />

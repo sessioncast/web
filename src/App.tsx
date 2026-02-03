@@ -5,7 +5,10 @@ import { CommandBar } from './components/CommandBar';
 import { Login } from './components/Login';
 import { TokenManager } from './components/TokenManager';
 import { OnboardingGuide } from './components/OnboardingGuide';
+import { InteractiveTour } from './components/onboarding';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useOnboardingStore } from './stores/OnboardingStore';
+import { mockAgentService } from './services/MockAgentService';
 import { SessionInfo } from './types';
 import './App.css';
 
@@ -14,6 +17,18 @@ const isLocalhost = window.location.hostname === 'localhost' || window.location.
 const WS_URL = isLocalhost
   ? `ws://${window.location.hostname}:8080/ws`
   : 'wss://relay.sessioncast.io/ws';
+
+// Extract email from JWT token
+function getEmailFromToken(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded.email || decoded.sub || null;
+  } catch {
+    return null;
+  }
+}
 
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() => {
@@ -34,6 +49,9 @@ function App() {
     const saved = localStorage.getItem('theme');
     return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
+
+  // Onboarding store
+  const { isDemoMode, demoSession, isTourActive, endDemoMode } = useOnboardingStore();
 
   useEffect(() => {
     document.documentElement.className = theme === 'light' ? 'light' : '';
@@ -116,10 +134,32 @@ function App() {
   // Filter out hidden sessions
   const visibleSessions = sessions.filter(s => !hiddenSessions.has(s.id));
 
-  const handleSelectSession = (sessionId: string) => {
+  // Merge demo session with real sessions when in demo mode
+  const allSessions: SessionInfo[] = isDemoMode && demoSession
+    ? [demoSession, ...visibleSessions]
+    : visibleSessions;
+
+  // Handle demo session input
+  const handleDemoInput = useCallback((data: string) => {
+    mockAgentService.handleInput(data);
+  }, []);
+
+  const handleSelectSession = useCallback((sessionId: string) => {
     currentSessionRef.current = sessionId;
     setCurrentSession(sessionId);
-    joinSession(sessionId);
+
+    if (sessionId === 'demo-session') {
+      // Connect mock agent to terminal
+      setTimeout(() => {
+        const writer = getTerminalWriter();
+        mockAgentService.attachToTerminal(writer);
+      }, 200);
+    } else {
+      // Disconnect mock agent and join real session
+      mockAgentService.detach();
+      joinSession(sessionId);
+    }
+
     setSidebarOpen(false); // Close sidebar on mobile after selection
     // Clear update indicator when selecting session
     setUpdatedSessions(prev => {
@@ -127,15 +167,32 @@ function App() {
       next.delete(sessionId);
       return next;
     });
-  };
+  }, [joinSession]);
 
-  const handleSendCommand = (command: string) => {
-    if (currentSession) {
+  const handleSelectDemoSession = useCallback(() => {
+    if (demoSession) {
+      handleSelectSession(demoSession.id);
+    }
+  }, [demoSession, handleSelectSession]);
+
+  const handleSendCommand = useCallback((command: string) => {
+    if (currentSession === 'demo-session') {
+      mockAgentService.handleInput(command);
+    } else if (currentSession) {
       sendKeys(currentSession, command);
     }
-  };
+  }, [currentSession, sendKeys]);
 
-  const currentSessionInfo = sessions.find(s => s.id === currentSession);
+  // Cleanup demo mode when real sessions are available
+  useEffect(() => {
+    if (sessions.length > 0 && isDemoMode && !isTourActive) {
+      endDemoMode();
+      mockAgentService.detach();
+    }
+  }, [sessions.length, isDemoMode, isTourActive, endDemoMode]);
+
+  const currentSessionInfo = allSessions.find(s => s.id === currentSession);
+  const isDemoSession = currentSession === 'demo-session';
 
   // Show login page if not authenticated
   if (!authToken) {
@@ -144,6 +201,9 @@ function App() {
 
   return (
     <div className="app">
+      {/* Interactive Tour */}
+      <InteractiveTour onSelectDemoSession={handleSelectDemoSession} />
+
       {/* Mobile sidebar toggle */}
       <button
         className="sidebar-toggle"
@@ -160,7 +220,7 @@ function App() {
       />
 
       <SessionList
-        sessions={visibleSessions}
+        sessions={allSessions}
         currentSession={currentSession}
         onSelectSession={handleSelectSession}
         theme={theme}
@@ -172,6 +232,7 @@ function App() {
         onKillSession={handleKillSession}
         onHideSession={handleHideSession}
         updatedSessions={updatedSessions}
+        userEmail={getEmailFromToken(authToken)}
       />
       {showTokenManager && authToken && (
         <TokenManager
@@ -180,22 +241,22 @@ function App() {
         />
       )}
       <div className="main-content">
-        {visibleSessions.length === 0 ? (
-          <OnboardingGuide authToken={authToken} />
+        {allSessions.length === 0 && !isTourActive ? (
+          <OnboardingGuide authToken={authToken} onAuthError={handleLogout} />
         ) : (
           <>
             <Terminal
               sessionId={currentSession}
               sessionLabel={currentSessionInfo?.label || null}
               status={currentSessionInfo?.status || 'offline'}
-              connectionStatus={status}
-              onInput={(data) => currentSession && sendKeys(currentSession, data)}
-              onResize={(cols, rows) => currentSession && sendResize(currentSession, cols, rows)}
+              connectionStatus={isDemoSession ? 'connected' : status}
+              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
+              onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
               theme={theme}
             />
             <CommandBar
               onSend={handleSendCommand}
-              disabled={!currentSession || currentSessionInfo?.status !== 'online'}
+              disabled={!currentSession || (!isDemoSession && currentSessionInfo?.status !== 'online')}
             />
           </>
         )}

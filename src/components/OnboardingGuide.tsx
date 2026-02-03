@@ -4,6 +4,7 @@ import './OnboardingGuide.css';
 
 interface OnboardingGuideProps {
   authToken: string;
+  onAuthError?: () => void;
 }
 
 // API URL - use Platform API server, not app server
@@ -13,7 +14,7 @@ const API_URL = isLocalhost
   : 'https://api.sessioncast.io';
 const RELAY_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 
-export function OnboardingGuide({ authToken }: OnboardingGuideProps) {
+export function OnboardingGuide({ authToken, onAuthError }: OnboardingGuideProps) {
   const { t } = useLanguage();
   const [agentToken, setAgentToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,12 @@ export function OnboardingGuide({ authToken }: OnboardingGuideProps) {
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
 
+      // Handle 401 - redirect to login
+      if (listResponse.status === 401) {
+        onAuthError?.();
+        return;
+      }
+
       if (listResponse.ok) {
         const data = await listResponse.json();
         if (data.tokens && data.tokens.length > 0) {
@@ -42,6 +49,12 @@ export function OnboardingGuide({ authToken }: OnboardingGuideProps) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
+
+      // Handle 401 - redirect to login
+      if (generateResponse.status === 401) {
+        onAuthError?.();
+        return;
+      }
 
       if (generateResponse.ok) {
         const data = await generateResponse.json();
@@ -60,7 +73,7 @@ export function OnboardingGuide({ authToken }: OnboardingGuideProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const configContent = `# ~/.tmux-remote.yml
+  const configContent = `# ~/.sessioncast.yml
 machineId: my-machine
 relay: ${RELAY_URL}
 token: ${agentToken || 'loading...'}`;
@@ -87,8 +100,8 @@ token: ${agentToken || 'loading...'}`;
             <h3>{t('step1Title')}</h3>
             <p>{t('step1Desc')}</p>
             <div className="code-block">
-              <code>git clone https://github.com/devload/tmux-remote-system.git</code>
-              <code>cd tmux-remote-system/agent-spring</code>
+              <code>git clone https://github.com/devload/sessioncast.git</code>
+              <code>cd sessioncast/agent</code>
               <code>./mvnw clean package -DskipTests</code>
             </div>
           </div>
@@ -98,7 +111,7 @@ token: ${agentToken || 'loading...'}`;
           <div className="step-number">2</div>
           <div className="step-content">
             <h3>{t('step2Title')}</h3>
-            <p>{t('step2Desc')} <code>~/.tmux-remote.yml</code></p>
+            <p>{t('step2Desc')} <code>~/.sessioncast.yml</code></p>
             <div className="config-block">
               <pre>{configContent}</pre>
               <button

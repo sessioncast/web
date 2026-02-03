@@ -1,7 +1,7 @@
 {
-  "name": "TMUX Remote",
-  "short_name": "TMUX",
-  "description": "Remote terminal access across machines",
+  "name": "SessionCast",
+  "short_name": "SessionCast",
+  "description": "Real-time terminal streaming and remote access",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",

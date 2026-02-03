@@ -141,9 +141,9 @@ export function TokenManager({ authToken, onClose }: TokenManagerProps) {
 
           <div className="config-example">
             <h3>{t('configExample')}</h3>
-            <pre>{`# ~/.tmux-remote.yml
+            <pre>{`# ~/.sessioncast.yml
 machineId: my-machine
-relay: ws://localhost:8080/ws
+relay: wss://relay.sessioncast.io/ws
 token: ${newToken || 'agt_xxxx...'}`}</pre>
           </div>
         </div>

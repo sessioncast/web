@@ -45,9 +45,26 @@ export function useWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const currentSessionRef = useRef<string | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Use refs for callbacks to prevent reconnection on callback changes
+  const onScreenRef = useRef(onScreen);
+  const onSessionListRef = useRef(onSessionList);
+  const onSessionStatusRef = useRef(onSessionStatus);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onScreenRef.current = onScreen;
+    onSessionListRef.current = onSessionList;
+    onSessionStatusRef.current = onSessionStatus;
+  }, [onScreen, onSessionList, onSessionStatus]);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Prevent duplicate connections
+    if (wsRef.current?.readyState === WebSocket.OPEN ||
+        wsRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
 
     setStatus('connecting');
     // Add token as query parameter for authentication
@@ -79,7 +96,7 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decoded = decodeBase64(message.payload);
-                onScreen?.(message.session, decoded);
+                onScreenRef.current?.(message.session, decoded);
               } catch (e) {
                 console.error('Failed to decode screen data:', e);
               }
@@ -90,7 +107,7 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decompressed = decompressGzip(message.payload);
-                onScreen?.(message.session, decompressed);
+                onScreenRef.current?.(message.session, decompressed);
               } catch (e) {
                 console.error('Failed to decompress screen data:', e);
               }
@@ -98,12 +115,12 @@ export function useWebSocket({
             break;
           case 'sessionList':
             if (message.sessions) {
-              onSessionList?.(message.sessions);
+              onSessionListRef.current?.(message.sessions);
             }
             break;
           case 'sessionStatus':
             if (message.session && message.status) {
-              onSessionStatus?.(message.session, message.status);
+              onSessionStatusRef.current?.(message.session, message.status);
             }
             break;
         }
@@ -124,9 +141,14 @@ export function useWebSocket({
     };
 
     wsRef.current = ws;
-  }, [url, token, onScreen, onSessionList, onSessionStatus]);
+  }, [url, token]); // Only reconnect when url or token changes
 
   const scheduleReconnect = useCallback(() => {
+    // Clear any existing reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
     const attempts = reconnectAttempts.current++;
     const delay = Math.min(
       RECONNECT_BASE_DELAY * Math.pow(2, attempts),
@@ -135,7 +157,7 @@ export function useWebSocket({
     const jitter = Math.random() * delay * 0.2;
 
     console.log(`Reconnecting in ${delay + jitter}ms...`);
-    setTimeout(connect, delay + jitter);
+    reconnectTimeoutRef.current = setTimeout(connect, delay + jitter);
   }, [connect]);
 
   const joinSession = useCallback((sessionId: string) => {
@@ -203,6 +225,11 @@ export function useWebSocket({
   useEffect(() => {
     connect();
     return () => {
+      // Clear reconnect timeout on cleanup
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       wsRef.current?.close();
     };
   }, [connect]);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tmux-remote-v1';
+const CACHE_NAME = 'sessioncast-v1';
 const urlsToCache = [
   '/',
   '/index.html',

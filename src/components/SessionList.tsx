@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SessionInfo } from '../types';
 import { useLanguage } from '../i18n';
+import { useOnboardingStore } from '../stores/OnboardingStore';
 import './SessionList.css';
 
 interface SessionListProps {
@@ -16,13 +17,19 @@ interface SessionListProps {
   onKillSession?: (sessionId: string) => void;
   onHideSession?: (sessionId: string) => void;
   updatedSessions?: Set<string>;
+  userEmail?: string | null;
 }
 
-export function SessionList({ sessions, currentSession, onSelectSession, theme, onToggleTheme, onLogout, onManageTokens, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions }: SessionListProps) {
+export function SessionList({ sessions, currentSession, onSelectSession, theme, onToggleTheme, onLogout, onManageTokens, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
   const { t, lang, setLang } = useLanguage();
+  const { startTour } = useOnboardingStore();
   const [creatingForMachine, setCreatingForMachine] = useState<string | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
+
+  const handleStartTour = () => {
+    startTour();
+  };
 
   const groupedSessions = sessions.reduce((acc, session) => {
     const machine = session.machineId || 'Unknown';
@@ -73,27 +80,29 @@ export function SessionList({ sessions, currentSession, onSelectSession, theme, 
   };
 
   return (
-    <div className={`session-list ${isOpen ? 'open' : ''}`}>
+    <div className={`session-list ${isOpen ? 'open' : ''}`} data-tour="session-list">
       <div className="session-list-header">
-        <h2>{t('sessions')}</h2>
-        <div className="header-actions">
-          <button className="lang-toggle-btn" onClick={toggleLanguage} title={lang === 'ko' ? 'Switch to English' : '한국어로 전환'}>
-            {lang === 'ko' ? 'EN' : 'KO'}
-          </button>
-          <button className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? (lang === 'ko' ? '라이트 모드' : 'Light mode') : (lang === 'ko' ? '다크 모드' : 'Dark mode')}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          {onManageTokens && (
-            <button className="token-btn" onClick={onManageTokens} title={lang === 'ko' ? 'Agent 토큰' : 'Agent Tokens'}>
-              🔑
-            </button>
-          )}
-          {onLogout && (
-            <button className="logout-btn" onClick={onLogout} title={lang === 'ko' ? '로그아웃' : 'Logout'}>
-              ↪
-            </button>
-          )}
+        <div className="brand-logo">
+          <svg className="logo-svg" width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <rect x="4" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
+            <rect x="24" y="8" width="16" height="16" rx="3" fill="#ff6b35"/>
+            <rect x="4" y="28" width="16" height="12" rx="3" fill="#ff6b35"/>
+          </svg>
+          <span className="logo-text">SessionCast</span>
         </div>
+      </div>
+      <div className="header-actions-row">
+        <button className="action-btn" onClick={toggleLanguage} title={lang === 'ko' ? 'Switch to English' : '한국어로 전환'}>
+          {lang === 'ko' ? 'EN' : 'KO'}
+        </button>
+        <button className="action-btn" onClick={onToggleTheme} title={theme === 'dark' ? (lang === 'ko' ? '라이트 모드' : 'Light mode') : (lang === 'ko' ? '다크 모드' : 'Dark mode')} data-tour="theme-toggle">
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        {onManageTokens && (
+          <button className="action-btn" onClick={onManageTokens} title={lang === 'ko' ? 'Agent 토큰' : 'Agent Tokens'} data-tour="token-manager">
+            🔑
+          </button>
+        )}
       </div>
       <div className="session-groups">
         {Object.entries(groupedSessions).map(([machineId, machineSessions]) => (
@@ -169,6 +178,36 @@ export function SessionList({ sessions, currentSession, onSelectSession, theme, 
         ))}
         {sessions.length === 0 && (
           <div className="no-sessions">{t('noSessions')}</div>
+        )}
+      </div>
+
+      {/* Footer - ThreadCast style */}
+      <div className="session-list-footer">
+        {/* Help button */}
+        <button className="footer-item help-btn" onClick={handleStartTour} data-tour="help-button">
+          <span className="footer-icon">?</span>
+          <span className="footer-text">{lang === 'ko' ? '도움말' : 'Help'}</span>
+        </button>
+
+        {/* User info */}
+        {userEmail && (
+          <div className="footer-user-section">
+            <div className="user-avatar">
+              {userEmail.charAt(0).toUpperCase()}
+            </div>
+            <div className="user-details">
+              <span className="user-name">{userEmail.split('@')[0]}</span>
+              <span className="user-email-small">{userEmail}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Logout button */}
+        {onLogout && (
+          <button className="footer-item logout-footer-btn" onClick={onLogout}>
+            <span className="footer-icon">↪</span>
+            <span className="footer-text">{lang === 'ko' ? '로그아웃' : 'Logout'}</span>
+          </button>
         )}
       </div>
     </div>

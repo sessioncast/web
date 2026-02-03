@@ -62,7 +62,7 @@ export function CommandBar({ onSend, disabled }: CommandBarProps) {
   };
 
   return (
-    <div className="command-bar">
+    <div className="command-bar" data-tour="command-bar">
       <div className="quick-commands">
         {QUICK_COMMANDS.map((qc) => (
           <button

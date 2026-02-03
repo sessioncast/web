@@ -130,6 +130,18 @@
   border-color: var(--text-muted);
 }
 
+.welcome-btn.tertiary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+
+.welcome-btn.tertiary:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-style: solid;
+}
+
 .btn-icon {
   font-size: 18px;
 }

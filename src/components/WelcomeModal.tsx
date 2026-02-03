@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../i18n';
+import { useOnboardingStore } from '../stores/OnboardingStore';
 import './WelcomeModal.css';
 
 interface WelcomeModalProps {
@@ -7,14 +8,23 @@ interface WelcomeModalProps {
   onStartSetup: () => void;
   onViewDemo?: () => void;
   onSelectScenario: (scenario: string) => void;
+  onStartTour?: () => void;
 }
 
 type Step = 'welcome' | 'scenario' | 'demo';
 
-export function WelcomeModal({ onClose, onStartSetup, onSelectScenario }: WelcomeModalProps) {
+export function WelcomeModal({ onClose, onStartSetup, onSelectScenario, onStartTour }: WelcomeModalProps) {
   const { t } = useLanguage();
+  const { startTour, setHasSeenWelcome } = useOnboardingStore();
   const [step, setStep] = useState<Step>('welcome');
   const [demoText, setDemoText] = useState('');
+
+  const handleStartTour = () => {
+    setHasSeenWelcome(true);
+    startTour();
+    onStartTour?.();
+    onClose();
+  };
 
   const scenarios = [
     { id: 'team', icon: '👨‍💻', title: t('scenarioTeam'), desc: t('scenarioTeamDesc') },
@@ -86,13 +96,17 @@ export function WelcomeModal({ onClose, onStartSetup, onSelectScenario }: Welcom
                 <span className="btn-icon">🖥️</span>
                 {t('welcomeConnect')}
               </button>
-              <button className="welcome-btn secondary" onClick={startDemo}>
+              <button className="welcome-btn secondary" onClick={handleStartTour}>
                 <span className="btn-icon">▶️</span>
                 {t('welcomeDemo')}
               </button>
               <button className="welcome-btn secondary" onClick={() => setStep('scenario')}>
                 <span className="btn-icon">📖</span>
                 {t('welcomeTour')}
+              </button>
+              <button className="welcome-btn tertiary" onClick={startDemo}>
+                <span className="btn-icon">🎬</span>
+                {t('quickDemo') || 'Quick Preview'}
               </button>
             </div>
 

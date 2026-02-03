@@ -60,7 +60,7 @@ export const translations = {
 
     // Token manager
     agentTokens: 'Agent 토큰',
-    tokenDescription: 'Agent 토큰을 생성하여 ~/.tmux-remote.yml 설정에 추가하세요. 본인 토큰으로 등록된 세션만 볼 수 있습니다.',
+    tokenDescription: 'Agent 토큰을 생성하여 ~/.sessioncast.yml 설정에 추가하세요. 본인 토큰으로 등록된 세션만 볼 수 있습니다.',
     generateNewToken: '새 토큰 생성',
     generating: '생성 중...',
     yourTokens: '내 토큰',
@@ -87,6 +87,15 @@ export const translations = {
     loading: '로딩 중...',
     error: '오류',
     close: '닫기',
+
+    // Tour & Demo
+    quickDemo: '빠른 미리보기',
+    tourBack: '이전',
+    tourNext: '다음',
+    tourSkip: '건너뛰기',
+    tourFinish: '완료',
+    tourClose: '닫기',
+    restartTour: '투어 다시 보기',
   },
 
   en: {
@@ -148,7 +157,7 @@ export const translations = {
 
     // Token manager
     agentTokens: 'Agent Tokens',
-    tokenDescription: 'Generate an agent token and add it to your ~/.tmux-remote.yml config. Only you will be able to see sessions registered with your token.',
+    tokenDescription: 'Generate an agent token and add it to your ~/.sessioncast.yml config. Only you will be able to see sessions registered with your token.',
     generateNewToken: 'Generate New Token',
     generating: 'Generating...',
     yourTokens: 'Your Tokens',
@@ -175,6 +184,15 @@ export const translations = {
     loading: 'Loading...',
     error: 'Error',
     close: 'Close',
+
+    // Tour & Demo
+    quickDemo: 'Quick Preview',
+    tourBack: 'Back',
+    tourNext: 'Next',
+    tourSkip: 'Skip',
+    tourFinish: 'Finish',
+    tourClose: 'Close',
+    restartTour: 'Take the Tour Again',
   }
 };
 
