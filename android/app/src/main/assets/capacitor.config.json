@@ -1,0 +1,25 @@
+{
+	"appId": "io.sessioncast.app",
+	"appName": "SessionCast",
+	"webDir": "dist",
+	"server": {
+		"url": "https://app.sessioncast.io",
+		"androidScheme": "https"
+	},
+	"ios": {
+		"contentInset": "automatic",
+		"preferredContentMode": "mobile",
+		"allowsLinkPreview": false
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	},
+	"plugins": {
+		"Keyboard": {
+			"resize": "body",
+			"resizeOnFullScreen": true
+		}
+	}
+}

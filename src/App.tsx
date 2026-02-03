@@ -5,7 +5,6 @@ import { CommandBar } from './components/CommandBar';
 import { Login } from './components/Login';
 import { TokenManager } from './components/TokenManager';
 import { OnboardingGuide } from './components/OnboardingGuide';
-import { WelcomeModal } from './components/WelcomeModal';
 import { useWebSocket } from './hooks/useWebSocket';
 import { SessionInfo } from './types';
 import './App.css';
@@ -55,11 +54,6 @@ function App() {
   }, []);
 
   const [showTokenManager, setShowTokenManager] = useState(false);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
-    // Show welcome modal only on first visit after login
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-    return !hasSeenWelcome;
-  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updatedSessions, setUpdatedSessions] = useState<Set<string>>(new Set());
   const [hiddenSessions, setHiddenSessions] = useState<Set<string>>(() => {
@@ -119,17 +113,6 @@ function App() {
     });
   }, []);
 
-  const handleCloseWelcome = useCallback(() => {
-    setShowWelcomeModal(false);
-    localStorage.setItem('hasSeenWelcome', 'true');
-  }, []);
-
-  const handleSelectScenario = useCallback((scenario: string) => {
-    // Could be used to customize onboarding based on scenario
-    console.log('Selected scenario:', scenario);
-    localStorage.setItem('userScenario', scenario);
-  }, []);
-
   // Filter out hidden sessions
   const visibleSessions = sessions.filter(s => !hiddenSessions.has(s.id));
 
@@ -175,16 +158,6 @@ function App() {
         className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`}
         onClick={() => setSidebarOpen(false)}
       />
-
-      {/* Welcome Modal for first-time users */}
-      {showWelcomeModal && (
-        <WelcomeModal
-          onClose={handleCloseWelcome}
-          onStartSetup={handleCloseWelcome}
-          onViewDemo={handleCloseWelcome}
-          onSelectScenario={handleSelectScenario}
-        />
-      )}
 
       <SessionList
         sessions={visibleSessions}
