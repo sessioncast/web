@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as Sentry from '@sentry/react';
 import { useLanguage } from '../i18n';
 import './Login.css';
 
@@ -60,6 +61,16 @@ export function Login({ onLoginSuccess }: LoginProps) {
     }
 
     if (errorParam) {
+      // Log OAuth redirect error to Sentry
+      Sentry.captureMessage('OAuth login failed', {
+        level: 'warning',
+        tags: { type: 'oauth_redirect_error' },
+        extra: {
+          errorCode: errorParam,
+          redirectUri: REDIRECT_URI,
+        },
+      });
+
       if (errorParam === 'domain_not_allowed') {
         setError(t('domainNotAllowed'));
       } else if (errorParam === 'oauth_failed') {
@@ -102,6 +113,15 @@ export function Login({ onLoginSuccess }: LoginProps) {
       onLoginSuccess(data.access_token);
       window.history.replaceState({}, document.title, '/');
     } catch (err) {
+      // Log token exchange error to Sentry
+      Sentry.captureException(err, {
+        tags: { type: 'token_exchange_error' },
+        extra: {
+          authUrl: AUTH_URL,
+          redirectUri: REDIRECT_URI,
+        },
+      });
+
       setError(err instanceof Error ? err.message : 'Login failed');
       setLoading(false);
     }
