@@ -30,6 +30,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_SENTRY_DSN: https://eb2ca5c4102734fe6b2e162ec78189d6@o4510832077701120.ingest.us.sentry.io/4510832170434560
         run: npm run build
 
       - name: Configure AWS credentials
