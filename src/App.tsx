@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import { SessionList } from './components/SessionList';
 import { Terminal, getTerminalWriter } from './components/Terminal';
 import { CommandBar } from './components/CommandBar';
@@ -58,17 +59,33 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Set Sentry user on initial load if already logged in
+  useEffect(() => {
+    if (authToken) {
+      const email = getEmailFromToken(authToken);
+      if (email) {
+        Sentry.setUser({ email });
+      }
+    }
+  }, []);
+
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
 
   const handleLoginSuccess = useCallback((token: string) => {
     setAuthToken(token);
+    // Set Sentry user for error tracking
+    const email = getEmailFromToken(token);
+    if (email) {
+      Sentry.setUser({ email });
+    }
   }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_token');
     setAuthToken(null);
+    Sentry.setUser(null);
   }, []);
 
   const [showTokenManager, setShowTokenManager] = useState(false);
