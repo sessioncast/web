@@ -25,7 +25,7 @@ function CustomTooltip({
   const { lang } = useLanguage();
   const progress = ((index + 1) / size) * 100;
 
-  const stepIcons = ['👋', '📋', '🖥️', '⌨️', '🔑', '🚀'];
+  const stepIcons = ['👋', '📋', '🖥️', '⌨️', '🚀'];
   const currentIcon = stepIcons[index] || '✨';
 
   return (
@@ -122,14 +122,7 @@ export function InteractiveTour({ onSelectDemoSession }: InteractiveTourProps) {
       placement: 'top-start',
       disableBeacon: true,
     },
-    {
-      target: '[data-tour="token-manager"]',
-      content: lang === 'ko'
-        ? '실제로 사용하려면 여기서 Agent 토큰을 발급받아 서버에 설치하세요.'
-        : 'To use SessionCast, get an Agent token here and install it on your server.',
-      placement: 'bottom',
-      disableBeacon: true,
-    },
+
     {
       target: 'body',
       content: lang === 'ko'

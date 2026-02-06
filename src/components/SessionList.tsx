@@ -11,7 +11,7 @@ interface SessionListProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onLogout?: () => void;
-  onManageTokens?: () => void;
+
   isOpen?: boolean;
   onCreateSession?: (machineId: string, sessionName: string) => void;
   onKillSession?: (sessionId: string) => void;
@@ -20,7 +20,7 @@ interface SessionListProps {
   userEmail?: string | null;
 }
 
-export function SessionList({ sessions, currentSession, onSelectSession, theme, onToggleTheme, onLogout, onManageTokens, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
+export function SessionList({ sessions, currentSession, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
   const { t, lang, setLang } = useLanguage();
   const { startTour } = useOnboardingStore();
   const [creatingForMachine, setCreatingForMachine] = useState<string | null>(null);
@@ -98,11 +98,8 @@ export function SessionList({ sessions, currentSession, onSelectSession, theme, 
         <button className="action-btn" onClick={onToggleTheme} title={theme === 'dark' ? (lang === 'ko' ? '라이트 모드' : 'Light mode') : (lang === 'ko' ? '다크 모드' : 'Dark mode')} data-tour="theme-toggle">
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        {onManageTokens && (
-          <button className="action-btn" onClick={onManageTokens} title={lang === 'ko' ? 'Agent 토큰' : 'Agent Tokens'} data-tour="token-manager">
-            🔑
-          </button>
-        )}
+
+
       </div>
       <div className="session-groups">
         {Object.entries(groupedSessions).map(([machineId, machineSessions]) => (

@@ -4,7 +4,7 @@ import { SessionList } from './components/SessionList';
 import { Terminal, getTerminalWriter } from './components/Terminal';
 import { CommandBar } from './components/CommandBar';
 import { Login } from './components/Login';
-import { TokenManager } from './components/TokenManager';
+
 import { OnboardingGuide } from './components/OnboardingGuide';
 import { InteractiveTour } from './components/onboarding';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -88,7 +88,7 @@ function App() {
     Sentry.setUser(null);
   }, []);
 
-  const [showTokenManager, setShowTokenManager] = useState(false);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updatedSessions, setUpdatedSessions] = useState<Set<string>>(new Set());
   const [hiddenSessions, setHiddenSessions] = useState<Set<string>>(() => {
@@ -243,7 +243,7 @@ function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
-        onManageTokens={() => setShowTokenManager(true)}
+
         isOpen={sidebarOpen}
         onCreateSession={handleCreateSession}
         onKillSession={handleKillSession}
@@ -251,12 +251,7 @@ function App() {
         updatedSessions={updatedSessions}
         userEmail={getEmailFromToken(authToken)}
       />
-      {showTokenManager && authToken && (
-        <TokenManager
-          authToken={authToken}
-          onClose={() => setShowTokenManager(false)}
-        />
-      )}
+
       <div className="main-content">
         {allSessions.length === 0 && !isTourActive ? (
           <OnboardingGuide authToken={authToken} onAuthError={handleLogout} />
