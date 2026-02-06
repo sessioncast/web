@@ -33,15 +33,11 @@ export const translations = {
     noMachines: '아직 연결된 머신이 없습니다. 아래 단계를 따라 시작하세요.',
 
     // Setup steps
-    step1Title: 'Host Agent 설치',
-    step1Desc: '제어하려는 머신에서 agent를 클론하고 빌드하세요:',
+    step1Title: 'SessionCast CLI 설치',
+    step1Desc: 'Node.js 18+가 필요합니다.',
 
-    step2Title: '설정 파일 생성',
-    step2Desc: '아래 내용으로 설정 파일을 생성하세요:',
-    yourAgentToken: 'Agent 토큰:',
-    copyToken: '토큰 복사',
-    copy: '복사',
-    copied: '복사됨!',
+    step2Title: '로그인',
+    step2Desc: '브라우저가 열리며 Google 계정으로 로그인합니다.',
 
     step3Title: 'tmux 세션 생성',
     step3Desc: '최소 하나의 tmux 세션이 실행 중이어야 합니다:',
@@ -49,6 +45,11 @@ export const translations = {
     step4Title: 'Agent 실행',
     step4Desc: 'Agent를 실행하여 머신을 연결하세요:',
     step4Hint: 'Agent가 자동으로 모든 tmux 세션을 감지합니다.',
+
+    copyToken: '토큰 복사',
+    copy: '복사',
+    copied: '복사됨!',
+    yourAgentToken: 'Agent 토큰:',
 
     // Footer
     footerConnected: '연결되면 사이드바에 세션이 표시됩니다.',
@@ -130,15 +131,11 @@ export const translations = {
     noMachines: 'No connected machines yet. Follow the steps below to get started.',
 
     // Setup steps
-    step1Title: 'Install the Host Agent',
-    step1Desc: 'On the machine you want to control, clone and build the agent:',
+    step1Title: 'Install SessionCast CLI',
+    step1Desc: 'Requires Node.js 18+.',
 
-    step2Title: 'Create Configuration File',
-    step2Desc: 'Create the config file with your agent token:',
-    yourAgentToken: 'Your Agent Token:',
-    copyToken: 'Copy Token',
-    copy: 'Copy',
-    copied: 'Copied!',
+    step2Title: 'Login',
+    step2Desc: 'A browser will open for Google OAuth login.',
 
     step3Title: 'Create a tmux Session',
     step3Desc: 'Make sure you have at least one tmux session running:',
@@ -146,6 +143,11 @@ export const translations = {
     step4Title: 'Start the Agent',
     step4Desc: 'Run the agent to connect your machine:',
     step4Hint: 'The agent will automatically discover all your tmux sessions.',
+
+    yourAgentToken: 'Your Agent Token:',
+    copyToken: 'Copy Token',
+    copy: 'Copy',
+    copied: 'Copied!',
 
     // Footer
     footerConnected: 'Once connected, your sessions will appear in the sidebar.',
