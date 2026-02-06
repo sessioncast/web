@@ -46,6 +46,7 @@ export function useWebSocket({
   const reconnectAttempts = useRef(0);
   const currentSessionRef = useRef<string | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionalCloseRef = useRef(false);
 
   // Use refs for callbacks to prevent reconnection on callback changes
   const onScreenRef = useRef(onScreen);
@@ -66,6 +67,7 @@ export function useWebSocket({
       return;
     }
 
+    intentionalCloseRef.current = false;
     setStatus('connecting');
     // Add token as query parameter for authentication
     const wsUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
@@ -133,7 +135,9 @@ export function useWebSocket({
       console.log('WebSocket disconnected');
       setStatus('disconnected');
       wsRef.current = null;
-      scheduleReconnect();
+      if (!intentionalCloseRef.current) {
+        scheduleReconnect();
+      }
     };
 
     ws.onerror = (error) => {
@@ -225,6 +229,8 @@ export function useWebSocket({
   useEffect(() => {
     connect();
     return () => {
+      // Mark as intentional close to prevent reconnect loop
+      intentionalCloseRef.current = true;
       // Clear reconnect timeout on cleanup
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
