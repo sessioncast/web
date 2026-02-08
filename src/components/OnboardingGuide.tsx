@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
 import { useLanguage } from '../i18n';
-import { API_URL, WS_URL } from '../config/env';
 import './OnboardingGuide.css';
 
 interface OnboardingGuideProps {
@@ -8,77 +6,8 @@ interface OnboardingGuideProps {
   onAuthError?: () => void;
 }
 
-export function OnboardingGuide({ authToken, onAuthError }: OnboardingGuideProps) {
+export function OnboardingGuide(_props: OnboardingGuideProps) {
   const { t } = useLanguage();
-  const [agentToken, setAgentToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    fetchOrCreateToken();
-  }, [authToken]);
-
-  const fetchOrCreateToken = async () => {
-    try {
-      const listResponse = await fetch(`${API_URL}/api/tokens`, {
-        headers: { 'Authorization': `Bearer ${authToken}` },
-      });
-
-      // Handle 401 - redirect to login
-      if (listResponse.status === 401) {
-        onAuthError?.();
-        return;
-      }
-
-      if (listResponse.ok) {
-        const data = await listResponse.json();
-        if (data.tokens && data.tokens.length > 0) {
-          setAgentToken(data.tokens[0]);
-          setLoading(false);
-          return;
-        }
-      }
-
-      const generateResponse = await fetch(`${API_URL}/api/tokens/generate`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` },
-      });
-
-      // Handle 401 - redirect to login
-      if (generateResponse.status === 401) {
-        onAuthError?.();
-        return;
-      }
-
-      if (generateResponse.ok) {
-        const data = await generateResponse.json();
-        setAgentToken(data.token);
-      }
-    } catch (e) {
-      console.error('Failed to fetch/create token', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const configContent = `# ~/.sessioncast.yml
-machineId: my-machine
-relay: ${WS_URL}
-token: ${agentToken || 'loading...'}`;
-
-  if (loading) {
-    return (
-      <div className="onboarding-guide">
-        <div className="loading-spinner">{t('loading')}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="onboarding-guide">
@@ -104,24 +33,8 @@ token: ${agentToken || 'loading...'}`;
           <div className="step-content">
             <h3>{t('step2Title')}</h3>
             <p>{t('step2Desc')}</p>
-            <div className="config-block">
-              <pre>{configContent}</pre>
-              <button
-                className="copy-btn"
-                onClick={() => handleCopy(configContent)}
-              >
-                {copied ? t('copied') : t('copy')}
-              </button>
-            </div>
-            <div className="token-info">
-              <span className="token-label">{t('yourAgentToken')}</span>
-              <code className="token-value">{agentToken}</code>
-              <button
-                className="copy-token-btn"
-                onClick={() => agentToken && handleCopy(agentToken)}
-              >
-                {t('copyToken')}
-              </button>
+            <div className="code-block">
+              <code>sessioncast login</code>
             </div>
           </div>
         </div>
