@@ -1,17 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import * as Sentry from '@sentry/react';
 import { SessionList } from './components/SessionList';
 import { Terminal, getTerminalWriter } from './components/Terminal';
 import { CommandBar } from './components/CommandBar';
 import { Login } from './components/Login';
-
+import { TokenManager } from './components/TokenManager';
 import { OnboardingGuide } from './components/OnboardingGuide';
 import { InteractiveTour } from './components/onboarding';
+import { FileViewer, type FileViewerContent, type FileTab } from './components/FileViewer';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useCtrlKey } from './hooks/useCtrlKey';
 import { useOnboardingStore } from './stores/OnboardingStore';
 import { mockAgentService } from './services/MockAgentService';
-import { SessionInfo, PaneInfo } from './types';
-import { WS_URL } from './env';
+import { SessionInfo } from './types';
+import { WS_URL } from './config/env';
 import './App.css';
 
 // Extract email from JWT token
@@ -46,24 +47,6 @@ function App() {
     return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
 
-  // Pane-related state
-  const [viewMode, setViewMode] = useState<'single' | 'layout'>('single');
-  const [selectedPane, setSelectedPane] = useState<string | null>(null);
-  const [paneScreens, setPaneScreens] = useState<Map<string, string>>(new Map());
-  const [sessionPanes, setSessionPanes] = useState<Map<string, PaneInfo[]>>(new Map());
-
-  const viewModeRef = useRef<'single' | 'layout'>('single');
-  const selectedPaneRef = useRef<string | null>(null);
-
-  // Keep refs in sync
-  useEffect(() => {
-    viewModeRef.current = viewMode;
-  }, [viewMode]);
-
-  useEffect(() => {
-    selectedPaneRef.current = selectedPane;
-  }, [selectedPane]);
-
   // Onboarding store
   const { isDemoMode, demoSession, isTourActive, endDemoMode } = useOnboardingStore();
 
@@ -72,36 +55,20 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Set Sentry user on initial load if already logged in
-  useEffect(() => {
-    if (authToken) {
-      const email = getEmailFromToken(authToken);
-      if (email) {
-        Sentry.setUser({ email });
-      }
-    }
-  }, []);
-
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
 
   const handleLoginSuccess = useCallback((token: string) => {
     setAuthToken(token);
-    // Set Sentry user for error tracking
-    const email = getEmailFromToken(token);
-    if (email) {
-      Sentry.setUser({ email });
-    }
   }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_token');
     setAuthToken(null);
-    Sentry.setUser(null);
   }, []);
 
-
+  const [showTokenManager, setShowTokenManager] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updatedSessions, setUpdatedSessions] = useState<Set<string>>(new Set());
   const [hiddenSessions, setHiddenSessions] = useState<Set<string>>(() => {
@@ -109,26 +76,19 @@ function App() {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
-  const handleScreen = useCallback((sessionId: string, data: string, paneId?: string | null) => {
+  // FileViewer state
+  const [fileViewerFiles, setFileViewerFiles] = useState<FileTab[]>([]);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+
+  // Track Ctrl/Cmd key for file click hints
+  useCtrlKey();
+
+  const handleScreen = useCallback((sessionId: string, data: string) => {
+    // Use ref to always get current session value
     if (sessionId === currentSessionRef.current) {
-      if (paneId) {
-        // Multi-pane: update pane-specific screen data
-        setPaneScreens(prev => {
-          const next = new Map(prev);
-          next.set(paneId, data);
-          return next;
-        });
-        // Also write to main terminal if this is the selected pane in single mode
-        if (selectedPaneRef.current === paneId && viewModeRef.current === 'single') {
-          const writer = getTerminalWriter();
-          if (writer) writer(data);
-        }
-      } else {
-        // Single pane: write directly (backward compat)
-        const writer = getTerminalWriter();
-        if (writer) {
-          writer(data);
-        }
+      const writer = getTerminalWriter();
+      if (writer) {
+        writer(data);
       }
     } else {
       // Mark session as having new updates (only if not currently viewing)
@@ -150,36 +110,47 @@ function App() {
     ));
   }, []);
 
-  const handlePaneLayout = useCallback((sessionId: string, panes: PaneInfo[]) => {
-    setSessionPanes(prev => {
-      const next = new Map(prev);
-      next.set(sessionId, panes);
-      return next;
-    });
-    // Also update sessions with pane info
-    setSessions(prev => prev.map(s =>
-      s.id === sessionId ? { ...s, panes } : s
-    ));
-    // Auto-switch view mode when pane layout changes for current session
+  const handleFileView = useCallback((sessionId: string, file: FileViewerContent) => {
     if (sessionId === currentSessionRef.current) {
-      if (panes.length > 1 && viewModeRef.current === 'single' && !selectedPaneRef.current) {
-        setViewMode('layout');
-        viewModeRef.current = 'layout';
-      } else if (panes.length <= 1 && viewModeRef.current === 'layout') {
-        setViewMode('single');
-        viewModeRef.current = 'single';
-      }
+      const newTab: FileTab = {
+        id: `${file.filename}-${Date.now()}`,
+        file,
+        addedAt: Date.now(),
+      };
+      setFileViewerFiles(prev => [...prev, newTab]);
+      setIsFileViewerOpen(true);
     }
   }, []);
 
-  const { status, joinSession, sendKeys, createSession, sendResize, killSession } = useWebSocket({
+  const handleCloseFileViewer = useCallback(() => {
+    setIsFileViewerOpen(false);
+    setFileViewerFiles([]);
+  }, []);
+
+  const handleCloseFile = useCallback((id: string) => {
+    setFileViewerFiles(prev => {
+      const next = prev.filter(f => f.id !== id);
+      if (next.length === 0) {
+        setIsFileViewerOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const { status, joinSession, sendKeys, createSession, sendResize, killSession, requestFileView } = useWebSocket({
     url: WS_URL,
     token: authToken,
     onScreen: handleScreen,
     onSessionList: handleSessionList,
     onSessionStatus: handleSessionStatus,
-    onPaneLayout: handlePaneLayout,
+    onFileView: handleFileView,
   });
+
+  const handleFileRequest = useCallback((path: string) => {
+    if (currentSessionRef.current) {
+      requestFileView(currentSessionRef.current, path);
+    }
+  }, [requestFileView]);
 
   const handleCreateSession = useCallback((machineId: string, sessionName: string) => {
     createSession(machineId, sessionName);
@@ -211,27 +182,9 @@ function App() {
     mockAgentService.handleInput(data);
   }, []);
 
-  const handleSelectSession = useCallback((sessionId: string, paneId?: string | null) => {
+  const handleSelectSession = useCallback((sessionId: string) => {
     currentSessionRef.current = sessionId;
     setCurrentSession(sessionId);
-    setPaneScreens(new Map()); // Clear pane screens when switching sessions
-
-    if (paneId === 'layout') {
-      setViewMode('layout');
-      viewModeRef.current = 'layout';
-      setSelectedPane(null);
-      selectedPaneRef.current = null;
-    } else if (paneId) {
-      setViewMode('single');
-      viewModeRef.current = 'single';
-      setSelectedPane(paneId);
-      selectedPaneRef.current = paneId;
-    } else {
-      setViewMode('single');
-      viewModeRef.current = 'single';
-      setSelectedPane(null);
-      selectedPaneRef.current = null;
-    }
 
     if (sessionId === 'demo-session') {
       // Connect mock agent to terminal
@@ -264,9 +217,9 @@ function App() {
     if (currentSession === 'demo-session') {
       mockAgentService.handleInput(command);
     } else if (currentSession) {
-      sendKeys(currentSession, command, selectedPane || undefined);
+      sendKeys(currentSession, command);
     }
-  }, [currentSession, sendKeys, selectedPane]);
+  }, [currentSession, sendKeys]);
 
   // Cleanup demo mode when real sessions are available
   useEffect(() => {
@@ -307,12 +260,10 @@ function App() {
       <SessionList
         sessions={allSessions}
         currentSession={currentSession}
-        selectedPane={selectedPane}
         onSelectSession={handleSelectSession}
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
-
         isOpen={sidebarOpen}
         onCreateSession={handleCreateSession}
         onKillSession={handleKillSession}
@@ -320,7 +271,12 @@ function App() {
         updatedSessions={updatedSessions}
         userEmail={getEmailFromToken(authToken)}
       />
-
+      {showTokenManager && authToken && (
+        <TokenManager
+          authToken={authToken}
+          onClose={() => setShowTokenManager(false)}
+        />
+      )}
       <div className="main-content">
         {allSessions.length === 0 && !isTourActive ? (
           <OnboardingGuide authToken={authToken} onAuthError={handleLogout} />
@@ -331,18 +287,10 @@ function App() {
               sessionLabel={currentSessionInfo?.label || null}
               status={currentSessionInfo?.status || 'offline'}
               connectionStatus={isDemoSession ? 'connected' : status}
-              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data, selectedPane || undefined)}
+              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
               onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
+              onFileClick={handleFileRequest}
               theme={theme}
-              viewMode={viewMode}
-              selectedPane={selectedPane}
-              panes={currentSession ? sessionPanes.get(currentSession) : undefined}
-              paneScreens={paneScreens}
-              onPaneInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
-              onPaneClick={(paneId) => {
-                setSelectedPane(paneId);
-                selectedPaneRef.current = paneId;
-              }}
             />
             <CommandBar
               onSend={handleSendCommand}
@@ -351,6 +299,14 @@ function App() {
           </>
         )}
       </div>
+      <FileViewer
+        files={fileViewerFiles}
+        isOpen={isFileViewerOpen}
+        onClose={handleCloseFileViewer}
+        onCloseFile={handleCloseFile}
+        onFileRequest={handleFileRequest}
+        theme={theme}
+      />
     </div>
   );
 }

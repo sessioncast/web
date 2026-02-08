@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ConnectionStatus, Message, PaneInfo, SessionInfo } from '../types';
+import { ConnectionStatus, Message, SessionInfo } from '../types';
+import { FileViewerContent } from '../components/FileViewer';
 import pako from 'pako';
 
 // Decode base64 to UTF-8 string
@@ -23,16 +24,52 @@ function decompressGzip(base64Data: string): string {
   return new TextDecoder('utf-8').decode(decompressed);
 }
 
+// Derive MIME content type from filename extension or agent language field
+function deriveContentType(filename: string, language?: string): string {
+  // Check language field from agent (e.g., 'markdown', 'html', 'javascript')
+  if (language) {
+    const langMap: Record<string, string> = {
+      'markdown': 'text/markdown',
+      'html': 'text/html',
+      'json': 'application/json',
+      'xml': 'text/xml',
+      'css': 'text/css',
+      'yaml': 'text/yaml',
+    };
+    if (langMap[language]) return langMap[language];
+  }
+
+  // Fallback: derive from file extension
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const extMap: Record<string, string> = {
+    'md': 'text/markdown',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'json': 'application/json',
+    'xml': 'text/xml',
+    'css': 'text/css',
+    'yaml': 'text/yaml',
+    'yml': 'text/yaml',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+    'webp': 'image/webp',
+  };
+  return extMap[ext] || 'text/plain';
+}
+
 const RECONNECT_BASE_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 
 interface UseWebSocketOptions {
   url: string;
   token?: string | null;
-  onScreen?: (sessionId: string, data: string, paneId?: string | null) => void;
+  onScreen?: (sessionId: string, data: string) => void;
   onSessionList?: (sessions: SessionInfo[]) => void;
   onSessionStatus?: (sessionId: string, status: string) => void;
-  onPaneLayout?: (sessionId: string, panes: PaneInfo[]) => void;
+  onFileView?: (sessionId: string, file: FileViewerContent) => void;
 }
 
 export function useWebSocket({
@@ -41,7 +78,7 @@ export function useWebSocket({
   onScreen,
   onSessionList,
   onSessionStatus,
-  onPaneLayout,
+  onFileView,
 }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
@@ -53,15 +90,15 @@ export function useWebSocket({
   const onScreenRef = useRef(onScreen);
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
-  const onPaneLayoutRef = useRef(onPaneLayout);
+  const onFileViewRef = useRef(onFileView);
 
   // Update refs when callbacks change
   useEffect(() => {
     onScreenRef.current = onScreen;
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
-    onPaneLayoutRef.current = onPaneLayout;
-  }, [onScreen, onSessionList, onSessionStatus, onPaneLayout]);
+    onFileViewRef.current = onFileView;
+  }, [onScreen, onSessionList, onSessionStatus, onFileView]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -100,31 +137,20 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decoded = decodeBase64(message.payload);
-                const paneId = message.meta?.pane || null;
-                onScreenRef.current?.(message.session, decoded, paneId);
+                onScreenRef.current?.(message.session, decoded);
               } catch (e) {
                 console.error('Failed to decode screen data:', e);
               }
             }
             break;
           case 'screenGz':
+            // Handle gzip compressed screen data
             if (message.session && message.payload) {
               try {
                 const decompressed = decompressGzip(message.payload);
-                const paneId = message.meta?.pane || null;
-                onScreenRef.current?.(message.session, decompressed, paneId);
+                onScreenRef.current?.(message.session, decompressed);
               } catch (e) {
                 console.error('Failed to decompress screen data:', e);
-              }
-            }
-            break;
-          case 'paneLayout':
-            if (message.session && message.payload) {
-              try {
-                const panes = JSON.parse(message.payload);
-                onPaneLayoutRef.current?.(message.session, panes);
-              } catch (e) {
-                console.error('Failed to parse paneLayout:', e);
               }
             }
             break;
@@ -138,6 +164,30 @@ export function useWebSocket({
               onSessionStatusRef.current?.(message.session, message.status);
             }
             break;
+          case 'file_view':
+            if (message.session && message.payload && message.meta) {
+              try {
+                // Agent sends meta.filePath, web may also use meta.path or meta.filename
+                const filePath = message.meta.filePath || message.meta.path || message.meta.filename || 'unknown';
+                const filename = filePath.split('/').pop() || filePath;
+
+                // Derive content type from meta.contentType, meta.language, or file extension
+                const contentType = message.meta.contentType || deriveContentType(filename, message.meta.language);
+                const isBase64 = contentType.startsWith('image/');
+                const content = isBase64 ? message.payload : decodeBase64(message.payload);
+
+                const fileContent: FileViewerContent = {
+                  filename,
+                  contentType,
+                  content,
+                  path: filePath,
+                };
+                onFileViewRef.current?.(message.session, fileContent);
+              } catch (e) {
+                console.error('Failed to process file_view:', e);
+              }
+            }
+            break;
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
@@ -147,12 +197,8 @@ export function useWebSocket({
     ws.onclose = () => {
       console.log('WebSocket disconnected');
       setStatus('disconnected');
-      // Only reconnect if this is still the active connection
-      // Prevents stale connections from triggering reconnect loops
-      if (wsRef.current === ws) {
-        wsRef.current = null;
-        scheduleReconnect();
-      }
+      wsRef.current = null;
+      scheduleReconnect();
     };
 
     ws.onerror = (error) => {
@@ -191,17 +237,13 @@ export function useWebSocket({
     }
   }, []);
 
-  const sendKeys = useCallback((sessionId: string, keys: string, paneId?: string) => {
+  const sendKeys = useCallback((sessionId: string, keys: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      const msg: any = {
+      wsRef.current.send(JSON.stringify({
         type: 'keys',
         session: sessionId,
         payload: keys,
-      };
-      if (paneId) {
-        msg.meta = { pane: paneId };
-      }
-      wsRef.current.send(JSON.stringify(msg));
+      }));
     }
   }, []);
 
@@ -245,6 +287,18 @@ export function useWebSocket({
     }
   }, []);
 
+  const requestFileView = useCallback((sessionId: string, filePath: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'requestFileView',
+        session: sessionId,
+        meta: {
+          path: filePath,
+        },
+      }));
+    }
+  }, []);
+
   useEffect(() => {
     connect();
     return () => {
@@ -253,10 +307,7 @@ export function useWebSocket({
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
-      // Clear ref BEFORE closing so onclose handler knows this is stale
-      const ws = wsRef.current;
-      wsRef.current = null;
-      ws?.close();
+      wsRef.current?.close();
     };
   }, [connect]);
 
@@ -268,5 +319,6 @@ export function useWebSocket({
     createSession,
     sendResize,
     killSession,
+    requestFileView,
   };
 }

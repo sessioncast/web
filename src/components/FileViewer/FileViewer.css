@@ -1,0 +1,633 @@
+.file-viewer-panel {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100vh;
+  min-width: 350px;
+  max-width: 90vw;
+  background-color: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+  z-index: 100;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.file-viewer-panel.open {
+  right: 0;
+}
+
+.file-viewer-panel.resizing {
+  transition: none;
+}
+
+/* Panel resize handle */
+.panel-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  transition: background-color 0.15s ease;
+}
+
+.panel-resize-handle:hover,
+.panel-resize-handle:active {
+  background: linear-gradient(to right, var(--accent), transparent);
+}
+
+/* Header with tabs */
+.file-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.file-viewer-tabs {
+  display: flex;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.file-viewer-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.file-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.file-tab:hover {
+  background-color: var(--bg-hover);
+}
+
+.file-tab.active {
+  background-color: var(--bg-primary);
+  border-bottom: 2px solid var(--accent);
+}
+
+.file-tab.secondary {
+  border-bottom: 2px solid #f59e0b;
+}
+
+.tab-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tab-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.file-tab:hover .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background-color: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.tab-resize-handle {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 5;
+}
+
+.tab-resize-handle:hover,
+.tab-resize-handle:active {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.file-viewer-actions {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+
+.file-viewer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.file-viewer-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.file-viewer-btn.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+.file-viewer-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* History sidebar */
+.file-viewer-history {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 280px;
+  max-height: calc(100vh - 80px);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px 0 0 8px;
+  box-shadow: -4px 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-header button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.history-header button:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.history-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.history-item.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+.history-item.active .history-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.history-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.history-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Content body */
+.file-viewer-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.file-viewer-body.split {
+  gap: 1px;
+}
+
+.file-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background-color: var(--bg-primary);
+}
+
+.file-pane.secondary {
+  border-left: 1px solid var(--border-color);
+}
+
+/* Status bar */
+.file-viewer-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background-color: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.status-path {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-type {
+  background-color: var(--bg-hover);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.status-split {
+  background-color: #f59e0b;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.file-viewer-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+}
+
+.file-viewer-empty p {
+  font-size: 14px;
+}
+
+/* Markdown Styles */
+.file-viewer-markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.file-viewer-markdown h1,
+.file-viewer-markdown h2,
+.file-viewer-markdown h3,
+.file-viewer-markdown h4,
+.file-viewer-markdown h5,
+.file-viewer-markdown h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.file-viewer-markdown h1 { font-size: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+.file-viewer-markdown h2 { font-size: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
+.file-viewer-markdown h3 { font-size: 18px; }
+.file-viewer-markdown h4 { font-size: 16px; }
+.file-viewer-markdown h5 { font-size: 14px; }
+.file-viewer-markdown h6 { font-size: 13px; color: var(--text-secondary); }
+
+.file-viewer-markdown p {
+  margin-bottom: 16px;
+}
+
+.file-viewer-markdown a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.file-viewer-markdown a:hover {
+  text-decoration: underline;
+}
+
+.file-viewer-markdown code {
+  padding: 2px 6px;
+  font-size: 85%;
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+.file-viewer-markdown pre {
+  padding: 16px;
+  overflow-x: auto;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.file-viewer-markdown pre code {
+  padding: 0;
+  background: none;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.file-viewer-markdown ul,
+.file-viewer-markdown ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.file-viewer-markdown li {
+  margin-bottom: 4px;
+}
+
+.file-viewer-markdown blockquote {
+  padding: 0 16px;
+  margin: 0 0 16px 0;
+  border-left: 4px solid var(--accent);
+  color: var(--text-secondary);
+}
+
+.file-viewer-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.file-viewer-markdown th,
+.file-viewer-markdown td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.file-viewer-markdown th {
+  background-color: var(--bg-tertiary);
+  font-weight: 600;
+}
+
+.file-viewer-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.file-viewer-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 24px 0;
+}
+
+/* HTML Styles */
+.file-viewer-html {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.file-viewer-html img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Text/Code Styles */
+.file-viewer-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.file-viewer-text pre {
+  margin: 0;
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Image Styles */
+.file-viewer-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.file-viewer-image img {
+  max-width: 100%;
+  max-height: calc(100vh - 150px);
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .file-viewer-panel {
+    width: 100% !important;
+    min-width: unset;
+    max-width: 100%;
+  }
+
+  .panel-resize-handle {
+    display: none;
+  }
+
+  .file-viewer-body.split {
+    flex-direction: column;
+  }
+
+  .file-pane.secondary {
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+/* Ctrl+Click hint for links */
+.file-viewer-markdown a,
+.file-viewer-html a {
+  position: relative;
+}
+
+/* When Ctrl is held, show pointer cursor on links */
+.ctrl-pressed .file-viewer-markdown a[href^="file://"],
+.ctrl-pressed .file-viewer-markdown a[href^="./"],
+.ctrl-pressed .file-viewer-markdown a[href^="../"],
+.ctrl-pressed .file-viewer-markdown a[href^="~/"],
+.ctrl-pressed .file-viewer-html a[href^="file://"],
+.ctrl-pressed .file-viewer-html a[href^="./"],
+.ctrl-pressed .file-viewer-html a[href^="../"],
+.ctrl-pressed .file-viewer-html a[href^="~/"] {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}
+
+/* Code Syntax Highlighting Styles */
+.file-viewer-code {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.file-viewer-code pre {
+  margin: 0;
+  padding: 12px 0;
+  background-color: #1d1f21 !important;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+.file-viewer-code code {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+  display: block;
+}
+
+.code-line {
+  display: flex;
+  min-height: 21px;
+}
+
+.code-line:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.line-number {
+  display: inline-block;
+  min-width: 50px;
+  padding: 0 12px;
+  text-align: right;
+  color: #636d83;
+  user-select: none;
+  flex-shrink: 0;
+  border-right: 1px solid #3a3f4b;
+  margin-right: 12px;
+}
+
+.line-content {
+  flex: 1;
+  white-space: pre;
+  padding-right: 16px;
+}
+
+/* Light theme code block */
+.file-viewer-panel.light .file-viewer-code pre {
+  background-color: #f8f8f8 !important;
+}
+
+.file-viewer-panel.light .code-line:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.file-viewer-panel.light .line-number {
+  color: #999;
+  border-right-color: #ddd;
+}
+
+/* Override Prism theme for dark mode */
+.file-viewer-panel.dark .file-viewer-code pre[class*="language-"],
+.file-viewer-panel.dark .file-viewer-code code[class*="language-"] {
+  background: #1d1f21;
+  text-shadow: none;
+}
+
+/* Scrollbar for code blocks */
+.file-viewer-code pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+.file-viewer-code pre::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.file-viewer-code pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.file-viewer-code pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { PaneInfo } from '../types';
-import { PaneLayout } from './PaneLayout';
+import { useCtrlKey } from '../hooks/useCtrlKey';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
+
+// Regex to match file paths in terminal output (global for link scanning)
+const FILE_PATH_REGEX = /((?:\/[\w.@-]+){2,}|~\/[\w.@/-]+|\.\.?\/[\w.@/-]+)/g;
 
 interface TerminalProps {
   sessionId: string | null;
@@ -13,13 +15,8 @@ interface TerminalProps {
   connectionStatus: string;
   onInput: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
+  onFileClick?: (path: string) => void;
   theme: 'dark' | 'light';
-  viewMode?: 'single' | 'layout';
-  selectedPane?: string | null;
-  panes?: PaneInfo[];
-  paneScreens?: Map<string, string>;
-  onPaneInput?: (data: string, paneId: string) => void;
-  onPaneClick?: (paneId: string) => void;
 }
 
 const darkTheme = {
@@ -45,18 +42,14 @@ export function Terminal({
   connectionStatus,
   onInput,
   onResize,
-  theme,
-  viewMode,
-  selectedPane,
-  panes,
-  paneScreens,
-  onPaneInput,
-  onPaneClick,
+  onFileClick,
+  theme
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const isCtrlPressed = useCtrlKey();
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -73,8 +66,6 @@ export function Terminal({
   // Initialize terminal after DOM is ready
   useEffect(() => {
     if (!sessionId || !terminalRef.current || xtermRef.current) return;
-    // Don't initialize single xterm when in layout mode with multiple panes
-    if (viewMode === 'layout' && panes && panes.length > 1) return;
 
     // Small delay to ensure DOM is fully rendered
     const initTimer = setTimeout(() => {
@@ -114,10 +105,46 @@ export function Terminal({
         onInput(data);
       });
 
+      // Register file path link provider (xterm.js official API)
+      // Highlights file paths on hover, click opens FileViewer
+      if (onFileClick) {
+        xterm.registerLinkProvider({
+          provideLinks(bufferLineNumber: number, callback: (links: any[] | undefined) => void) {
+            const line = xterm.buffer.active.getLine(bufferLineNumber - 1);
+            if (!line) { callback(undefined); return; }
+
+            let lineText = '';
+            for (let i = 0; i < line.length; i++) {
+              lineText += line.getCell(i)?.getChars() || ' ';
+            }
+
+            const links: any[] = [];
+            FILE_PATH_REGEX.lastIndex = 0;
+            let match;
+            while ((match = FILE_PATH_REGEX.exec(lineText)) !== null) {
+              const filePath = match[1];
+              const startX = match.index + (match[0].length - filePath.length);
+              links.push({
+                range: {
+                  start: { x: startX + 1, y: bufferLineNumber },
+                  end: { x: startX + filePath.length + 1, y: bufferLineNumber },
+                },
+                text: filePath,
+                activate(_event: MouseEvent, text: string) {
+                  console.log('[FileViewer] Link clicked:', text);
+                  onFileClick(text);
+                },
+              });
+            }
+            callback(links.length > 0 ? links : undefined);
+          },
+        });
+      }
+
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [sessionId, onInput, viewMode, panes]);
+  }, [sessionId, onInput, onFileClick]);
 
   // Handle window resize
   useEffect(() => {
@@ -171,7 +198,7 @@ export function Terminal({
   }, [writeToTerminal]);
 
   return (
-    <div className="terminal-container" data-tour="terminal">
+    <div className={`terminal-container ${isCtrlPressed ? 'ctrl-active' : ''}`} data-tour="terminal">
       <div className="terminal-header">
         <div className="header-left">
           <span className={`connection-status ${connectionStatus}`} />
@@ -188,21 +215,12 @@ export function Terminal({
         </div>
       </div>
       <div className="terminal-content">
-        {!sessionId ? (
+        {sessionId ? (
+          <div ref={terminalRef} className="xterm-wrapper" />
+        ) : (
           <div className="terminal-placeholder">
             <p>Select a session from the sidebar to connect</p>
           </div>
-        ) : viewMode === 'layout' && panes && panes.length > 1 ? (
-          <PaneLayout
-            panes={panes}
-            paneScreens={paneScreens || new Map()}
-            activePaneId={selectedPane || null}
-            onPaneClick={onPaneClick || (() => {})}
-            onInput={onPaneInput || (() => {})}
-            theme={theme}
-          />
-        ) : (
-          <div ref={terminalRef} className="xterm-wrapper" />
         )}
       </div>
     </div>
