@@ -1,0 +1,59 @@
+.pane-grid {
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+  background: var(--border-color, #444);
+}
+
+.pane-cell {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary, #1e1e1e);
+  border: none;
+  transition: box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.pane-cell:hover {
+  box-shadow: inset 0 0 0 1px var(--accent, #8b5cf6);
+}
+
+.pane-cell.active {
+  box-shadow: inset 0 0 0 1px var(--accent, #8b5cf6);
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: var(--bg-secondary, #252525);
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+  flex-shrink: 0;
+}
+
+.pane-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pane-active-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--accent, #8b5cf6);
+  color: white;
+  flex-shrink: 0;
+}
+
+.pane-terminal {
+  flex: 1;
+  overflow: hidden;
+}
+
+.pane-terminal .xterm {
+  height: 100%;
+}

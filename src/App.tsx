@@ -9,14 +9,9 @@ import { InteractiveTour } from './components/onboarding';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useOnboardingStore } from './stores/OnboardingStore';
 import { mockAgentService } from './services/MockAgentService';
-import { SessionInfo } from './types';
+import { SessionInfo, PaneInfo } from './types';
+import { WS_URL } from './config/urls';
 import './App.css';
-
-// WebSocket URL - use relay server, not app server
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const WS_URL = isLocalhost
-  ? `ws://${window.location.hostname}:8080/ws`
-  : 'wss://relay.sessioncast.io/ws';
 
 // Extract email from JWT token
 function getEmailFromToken(token: string | null): string | null {
@@ -50,6 +45,24 @@ function App() {
     return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
 
+  // Pane-related state
+  const [viewMode, setViewMode] = useState<'single' | 'layout'>('single');
+  const [selectedPane, setSelectedPane] = useState<string | null>(null);
+  const [paneScreens, setPaneScreens] = useState<Map<string, string>>(new Map());
+  const [sessionPanes, setSessionPanes] = useState<Map<string, PaneInfo[]>>(new Map());
+
+  const viewModeRef = useRef<'single' | 'layout'>('single');
+  const selectedPaneRef = useRef<string | null>(null);
+
+  // Keep refs in sync
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  useEffect(() => {
+    selectedPaneRef.current = selectedPane;
+  }, [selectedPane]);
+
   // Onboarding store
   const { isDemoMode, demoSession, isTourActive, endDemoMode } = useOnboardingStore();
 
@@ -79,12 +92,26 @@ function App() {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
-  const handleScreen = useCallback((sessionId: string, data: string) => {
-    // Use ref to always get current session value
+  const handleScreen = useCallback((sessionId: string, data: string, paneId?: string | null) => {
     if (sessionId === currentSessionRef.current) {
-      const writer = getTerminalWriter();
-      if (writer) {
-        writer(data);
+      if (paneId) {
+        // Multi-pane: update pane-specific screen data
+        setPaneScreens(prev => {
+          const next = new Map(prev);
+          next.set(paneId, data);
+          return next;
+        });
+        // Also write to main terminal if this is the selected pane in single mode
+        if (selectedPaneRef.current === paneId && viewModeRef.current === 'single') {
+          const writer = getTerminalWriter();
+          if (writer) writer(data);
+        }
+      } else {
+        // Single pane: write directly (backward compat)
+        const writer = getTerminalWriter();
+        if (writer) {
+          writer(data);
+        }
       }
     } else {
       // Mark session as having new updates (only if not currently viewing)
@@ -106,12 +133,35 @@ function App() {
     ));
   }, []);
 
+  const handlePaneLayout = useCallback((sessionId: string, panes: PaneInfo[]) => {
+    setSessionPanes(prev => {
+      const next = new Map(prev);
+      next.set(sessionId, panes);
+      return next;
+    });
+    // Also update sessions with pane info
+    setSessions(prev => prev.map(s =>
+      s.id === sessionId ? { ...s, panes } : s
+    ));
+    // Auto-switch view mode when pane layout changes for current session
+    if (sessionId === currentSessionRef.current) {
+      if (panes.length > 1 && viewModeRef.current === 'single' && !selectedPaneRef.current) {
+        setViewMode('layout');
+        viewModeRef.current = 'layout';
+      } else if (panes.length <= 1 && viewModeRef.current === 'layout') {
+        setViewMode('single');
+        viewModeRef.current = 'single';
+      }
+    }
+  }, []);
+
   const { status, joinSession, sendKeys, createSession, sendResize, killSession } = useWebSocket({
     url: WS_URL,
     token: authToken,
     onScreen: handleScreen,
     onSessionList: handleSessionList,
     onSessionStatus: handleSessionStatus,
+    onPaneLayout: handlePaneLayout,
   });
 
   const handleCreateSession = useCallback((machineId: string, sessionName: string) => {
@@ -144,9 +194,27 @@ function App() {
     mockAgentService.handleInput(data);
   }, []);
 
-  const handleSelectSession = useCallback((sessionId: string) => {
+  const handleSelectSession = useCallback((sessionId: string, paneId?: string | null) => {
     currentSessionRef.current = sessionId;
     setCurrentSession(sessionId);
+    setPaneScreens(new Map()); // Clear pane screens when switching sessions
+
+    if (paneId === 'layout') {
+      setViewMode('layout');
+      viewModeRef.current = 'layout';
+      setSelectedPane(null);
+      selectedPaneRef.current = null;
+    } else if (paneId) {
+      setViewMode('single');
+      viewModeRef.current = 'single';
+      setSelectedPane(paneId);
+      selectedPaneRef.current = paneId;
+    } else {
+      setViewMode('single');
+      viewModeRef.current = 'single';
+      setSelectedPane(null);
+      selectedPaneRef.current = null;
+    }
 
     if (sessionId === 'demo-session') {
       // Connect mock agent to terminal
@@ -179,9 +247,9 @@ function App() {
     if (currentSession === 'demo-session') {
       mockAgentService.handleInput(command);
     } else if (currentSession) {
-      sendKeys(currentSession, command);
+      sendKeys(currentSession, command, selectedPane || undefined);
     }
-  }, [currentSession, sendKeys]);
+  }, [currentSession, sendKeys, selectedPane]);
 
   // Cleanup demo mode when real sessions are available
   useEffect(() => {
@@ -222,6 +290,7 @@ function App() {
       <SessionList
         sessions={allSessions}
         currentSession={currentSession}
+        selectedPane={selectedPane}
         onSelectSession={handleSelectSession}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -250,9 +319,18 @@ function App() {
               sessionLabel={currentSessionInfo?.label || null}
               status={currentSessionInfo?.status || 'offline'}
               connectionStatus={isDemoSession ? 'connected' : status}
-              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
+              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data, selectedPane || undefined)}
               onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
               theme={theme}
+              viewMode={viewMode}
+              selectedPane={selectedPane}
+              panes={currentSession ? sessionPanes.get(currentSession) : undefined}
+              paneScreens={paneScreens}
+              onPaneInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
+              onPaneClick={(paneId) => {
+                setSelectedPane(paneId);
+                selectedPaneRef.current = paneId;
+              }}
             />
             <CommandBar
               onSend={handleSendCommand}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ConnectionStatus, Message, SessionInfo } from '../types';
+import { ConnectionStatus, Message, PaneInfo, SessionInfo } from '../types';
 import pako from 'pako';
 
 // Decode base64 to UTF-8 string
@@ -29,9 +29,10 @@ const MAX_RECONNECT_DELAY = 30000;
 interface UseWebSocketOptions {
   url: string;
   token?: string | null;
-  onScreen?: (sessionId: string, data: string) => void;
+  onScreen?: (sessionId: string, data: string, paneId?: string | null) => void;
   onSessionList?: (sessions: SessionInfo[]) => void;
   onSessionStatus?: (sessionId: string, status: string) => void;
+  onPaneLayout?: (sessionId: string, panes: PaneInfo[]) => void;
 }
 
 export function useWebSocket({
@@ -40,6 +41,7 @@ export function useWebSocket({
   onScreen,
   onSessionList,
   onSessionStatus,
+  onPaneLayout,
 }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
@@ -51,13 +53,15 @@ export function useWebSocket({
   const onScreenRef = useRef(onScreen);
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
+  const onPaneLayoutRef = useRef(onPaneLayout);
 
   // Update refs when callbacks change
   useEffect(() => {
     onScreenRef.current = onScreen;
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
-  }, [onScreen, onSessionList, onSessionStatus]);
+    onPaneLayoutRef.current = onPaneLayout;
+  }, [onScreen, onSessionList, onSessionStatus, onPaneLayout]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -96,20 +100,31 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decoded = decodeBase64(message.payload);
-                onScreenRef.current?.(message.session, decoded);
+                const paneId = message.meta?.pane || null;
+                onScreenRef.current?.(message.session, decoded, paneId);
               } catch (e) {
                 console.error('Failed to decode screen data:', e);
               }
             }
             break;
           case 'screenGz':
-            // Handle gzip compressed screen data
             if (message.session && message.payload) {
               try {
                 const decompressed = decompressGzip(message.payload);
-                onScreenRef.current?.(message.session, decompressed);
+                const paneId = message.meta?.pane || null;
+                onScreenRef.current?.(message.session, decompressed, paneId);
               } catch (e) {
                 console.error('Failed to decompress screen data:', e);
+              }
+            }
+            break;
+          case 'paneLayout':
+            if (message.session && message.payload) {
+              try {
+                const panes = JSON.parse(message.payload);
+                onPaneLayoutRef.current?.(message.session, panes);
+              } catch (e) {
+                console.error('Failed to parse paneLayout:', e);
               }
             }
             break;
@@ -172,13 +187,17 @@ export function useWebSocket({
     }
   }, []);
 
-  const sendKeys = useCallback((sessionId: string, keys: string) => {
+  const sendKeys = useCallback((sessionId: string, keys: string, paneId?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+      const msg: any = {
         type: 'keys',
         session: sessionId,
         payload: keys,
-      }));
+      };
+      if (paneId) {
+        msg.meta = { pane: paneId };
+      }
+      wsRef.current.send(JSON.stringify(msg));
     }
   }, []);
 

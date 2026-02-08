@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import { PaneInfo } from '../types';
+import { PaneLayout } from './PaneLayout';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
 
@@ -12,6 +14,12 @@ interface TerminalProps {
   onInput: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
   theme: 'dark' | 'light';
+  viewMode?: 'single' | 'layout';
+  selectedPane?: string | null;
+  panes?: PaneInfo[];
+  paneScreens?: Map<string, string>;
+  onPaneInput?: (data: string, paneId: string) => void;
+  onPaneClick?: (paneId: string) => void;
 }
 
 const darkTheme = {
@@ -37,7 +45,13 @@ export function Terminal({
   connectionStatus,
   onInput,
   onResize,
-  theme
+  theme,
+  viewMode,
+  selectedPane,
+  panes,
+  paneScreens,
+  onPaneInput,
+  onPaneClick,
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -59,6 +73,8 @@ export function Terminal({
   // Initialize terminal after DOM is ready
   useEffect(() => {
     if (!sessionId || !terminalRef.current || xtermRef.current) return;
+    // Don't initialize single xterm when in layout mode with multiple panes
+    if (viewMode === 'layout' && panes && panes.length > 1) return;
 
     // Small delay to ensure DOM is fully rendered
     const initTimer = setTimeout(() => {
@@ -101,7 +117,7 @@ export function Terminal({
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [sessionId, onInput]);
+  }, [sessionId, onInput, viewMode, panes]);
 
   // Handle window resize
   useEffect(() => {
@@ -172,12 +188,21 @@ export function Terminal({
         </div>
       </div>
       <div className="terminal-content">
-        {sessionId ? (
-          <div ref={terminalRef} className="xterm-wrapper" />
-        ) : (
+        {!sessionId ? (
           <div className="terminal-placeholder">
             <p>Select a session from the sidebar to connect</p>
           </div>
+        ) : viewMode === 'layout' && panes && panes.length > 1 ? (
+          <PaneLayout
+            panes={panes}
+            paneScreens={paneScreens || new Map()}
+            activePaneId={selectedPane || null}
+            onPaneClick={onPaneClick || (() => {})}
+            onInput={onPaneInput || (() => {})}
+            theme={theme}
+          />
+        ) : (
+          <div ref={terminalRef} className="xterm-wrapper" />
         )}
       </div>
     </div>
