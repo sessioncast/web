@@ -11,13 +11,8 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useOnboardingStore } from './stores/OnboardingStore';
 import { mockAgentService } from './services/MockAgentService';
 import { SessionInfo } from './types';
+import { WS_URL } from './env';
 import './App.css';
-
-// WebSocket URL - use relay server, not app server
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const WS_URL = isLocalhost
-  ? `ws://${window.location.hostname}:8080/ws`
-  : 'wss://relay.sessioncast.io/ws';
 
 // Extract email from JWT token
 function getEmailFromToken(token: string | null): string | null {

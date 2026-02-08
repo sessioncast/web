@@ -7,9 +7,7 @@ interface LoginProps {
   onLoginSuccess: (token: string) => void;
 }
 
-// Auth Server URL - use localhost for development
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const AUTH_URL = isLocalhost ? 'http://localhost:22081' : 'https://auth.sessioncast.io';
+import { AUTH_URL } from '../env';
 const CLIENT_ID = 'sessioncast-platform';
 const CLIENT_SECRET = 'Zqvg5foaN3ZCtd4sGLumgeTZ6azGBXK7';
 const REDIRECT_URI = `${window.location.origin}/auth/callback`;
