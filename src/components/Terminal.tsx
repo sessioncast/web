@@ -5,8 +5,8 @@ import { useCtrlKey } from '../hooks/useCtrlKey';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
 
-// Regex to match file paths in terminal output
-const FILE_PATH_REGEX = /(?:^|[\s'"(])((\/[\w./-]+|~\/[\w./-]+|\.\.?\/[\w./-]+)\.\w+)/;
+// Regex to match file paths in terminal output (global for link scanning)
+const FILE_PATH_REGEX = /((?:\/[\w.@-]+){2,}|~\/[\w.@/-]+|\.\.?\/[\w.@/-]+)/g;
 
 interface TerminalProps {
   sessionId: string | null;
@@ -105,37 +105,40 @@ export function Terminal({
         onInput(data);
       });
 
-      // Handle Ctrl/Cmd+Click on file paths
-      const xtermElement = terminalRef.current.querySelector('.xterm-screen');
-      if (xtermElement) {
-        xtermElement.addEventListener('mousedown', ((e: MouseEvent) => {
-          if (!(e.ctrlKey || e.metaKey) || !onFileClick) return;
+      // Register file path link provider (xterm.js official API)
+      // Highlights file paths on hover, click opens FileViewer
+      if (onFileClick) {
+        xterm.registerLinkProvider({
+          provideLinks(bufferLineNumber: number, callback: (links: any[] | undefined) => void) {
+            const line = xterm.buffer.active.getLine(bufferLineNumber - 1);
+            if (!line) { callback(undefined); return; }
 
-          const buffer = xterm.buffer.active;
-          const fontSize = 14; // hardcoded, matches xterm config
-          const charHeight = fontSize * 1.2;
+            let lineText = '';
+            for (let i = 0; i < line.length; i++) {
+              lineText += line.getCell(i)?.getChars() || ' ';
+            }
 
-          const rect = (e.target as HTMLElement).getBoundingClientRect();
-          const row = Math.floor((e.clientY - rect.top) / charHeight);
-
-          const bufferRow = row + buffer.viewportY;
-          if (bufferRow < 0 || bufferRow >= buffer.length) return;
-
-          const line = buffer.getLine(bufferRow);
-          if (!line) return;
-
-          let lineText = '';
-          for (let i = 0; i < line.length; i++) {
-            lineText += line.getCell(i)?.getChars() || ' ';
-          }
-
-          const match = lineText.match(FILE_PATH_REGEX);
-          if (match && match[1]) {
-            e.preventDefault();
-            e.stopPropagation();
-            onFileClick(match[1]);
-          }
-        }) as EventListener);
+            const links: any[] = [];
+            FILE_PATH_REGEX.lastIndex = 0;
+            let match;
+            while ((match = FILE_PATH_REGEX.exec(lineText)) !== null) {
+              const filePath = match[1];
+              const startX = match.index + (match[0].length - filePath.length);
+              links.push({
+                range: {
+                  start: { x: startX + 1, y: bufferLineNumber },
+                  end: { x: startX + filePath.length + 1, y: bufferLineNumber },
+                },
+                text: filePath,
+                activate(_event: MouseEvent, text: string) {
+                  console.log('[FileViewer] Link clicked:', text);
+                  onFileClick(text);
+                },
+              });
+            }
+            callback(links.length > 0 ? links : undefined);
+          },
+        });
       }
 
     }, 100);

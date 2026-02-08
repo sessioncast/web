@@ -24,6 +24,42 @@ function decompressGzip(base64Data: string): string {
   return new TextDecoder('utf-8').decode(decompressed);
 }
 
+// Derive MIME content type from filename extension or agent language field
+function deriveContentType(filename: string, language?: string): string {
+  // Check language field from agent (e.g., 'markdown', 'html', 'javascript')
+  if (language) {
+    const langMap: Record<string, string> = {
+      'markdown': 'text/markdown',
+      'html': 'text/html',
+      'json': 'application/json',
+      'xml': 'text/xml',
+      'css': 'text/css',
+      'yaml': 'text/yaml',
+    };
+    if (langMap[language]) return langMap[language];
+  }
+
+  // Fallback: derive from file extension
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const extMap: Record<string, string> = {
+    'md': 'text/markdown',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'json': 'application/json',
+    'xml': 'text/xml',
+    'css': 'text/css',
+    'yaml': 'text/yaml',
+    'yml': 'text/yaml',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+    'webp': 'image/webp',
+  };
+  return extMap[ext] || 'text/plain';
+}
+
 const RECONNECT_BASE_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 
@@ -131,9 +167,12 @@ export function useWebSocket({
           case 'file_view':
             if (message.session && message.payload && message.meta) {
               try {
-                const filePath = message.meta.path || message.meta.filename || 'unknown';
+                // Agent sends meta.filePath, web may also use meta.path or meta.filename
+                const filePath = message.meta.filePath || message.meta.path || message.meta.filename || 'unknown';
                 const filename = filePath.split('/').pop() || filePath;
-                const contentType = message.meta.contentType || 'text/plain';
+
+                // Derive content type from meta.contentType, meta.language, or file extension
+                const contentType = message.meta.contentType || deriveContentType(filename, message.meta.language);
                 const isBase64 = contentType.startsWith('image/');
                 const content = isBase64 ? message.payload : decodeBase64(message.payload);
 
@@ -251,7 +290,7 @@ export function useWebSocket({
   const requestFileView = useCallback((sessionId: string, filePath: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        type: 'file_view',
+        type: 'requestFileView',
         session: sessionId,
         meta: {
           path: filePath,
