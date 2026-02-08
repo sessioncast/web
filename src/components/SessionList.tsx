@@ -7,7 +7,8 @@ import './SessionList.css';
 interface SessionListProps {
   sessions: SessionInfo[];
   currentSession: string | null;
-  onSelectSession: (sessionId: string) => void;
+  selectedPane?: string | null;
+  onSelectSession: (sessionId: string, paneId?: string | null) => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onLogout?: () => void;
@@ -20,15 +21,29 @@ interface SessionListProps {
   userEmail?: string | null;
 }
 
-export function SessionList({ sessions, currentSession, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
+export function SessionList({ sessions, currentSession, selectedPane, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
   const { t, lang, setLang } = useLanguage();
   const { startTour } = useOnboardingStore();
   const [creatingForMachine, setCreatingForMachine] = useState<string | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   const handleStartTour = () => {
     startTour();
+  };
+
+  const toggleExpanded = (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedSessions(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
   };
 
   const groupedSessions = sessions.reduce((acc, session) => {
@@ -134,38 +149,65 @@ export function SessionList({ sessions, currentSession, onSelectSession, theme, 
             {machineSessions.map((session) => {
               const hasUpdate = updatedSessions?.has(session.id) && currentSession !== session.id;
               const isMenuOpen = menuOpenFor === session.id;
+              const hasMultiplePanes = session.panes && session.panes.length > 1;
+              const isExpanded = expandedSessions.has(session.id);
+
               return (
-                <div
-                  key={session.id}
-                  className={`session-item ${currentSession === session.id ? 'active' : ''} ${hasUpdate ? 'has-update' : ''}`}
-                  onClick={() => onSelectSession(session.id)}
-                >
-                  <span className={`status-dot ${session.status}`} />
-                  <span className="session-label">{session.label || session.id}</span>
-                  {hasUpdate && <span className="update-indicator" />}
-                  {(onKillSession || onHideSession) && (
-                    <div className="session-menu-container">
-                      <button
-                        className="session-menu-btn"
-                        onClick={(e) => handleMenuClick(e, session.id)}
-                        title={lang === 'ko' ? '메뉴' : 'Menu'}
-                      >
-                        ⋮
-                      </button>
-                      {isMenuOpen && (
-                        <div className="session-menu">
-                          {onHideSession && (
-                            <button onClick={(e) => handleHideSession(e, session.id)}>
-                              {lang === 'ko' ? '숨기기' : 'Hide'}
-                            </button>
-                          )}
-                          {onKillSession && session.status === 'online' && (
-                            <button className="danger" onClick={(e) => handleKillSession(e, session.id)}>
-                              {lang === 'ko' ? '종료' : 'Kill'}
-                            </button>
-                          )}
+                <div key={session.id}>
+                  <div
+                    className={`session-item ${currentSession === session.id ? 'active' : ''} ${hasUpdate ? 'has-update' : ''}`}
+                    onClick={() => onSelectSession(session.id, hasMultiplePanes ? 'layout' : undefined)}
+                  >
+                    {hasMultiplePanes && (
+                      <span className="tree-toggle" onClick={(e) => toggleExpanded(session.id, e)}>
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
+                    )}
+                    <span className={`status-dot ${session.status}`} />
+                    <span className="session-label">{session.label || session.id}</span>
+                    {hasMultiplePanes && (
+                      <span className="pane-count">{session.panes!.length}</span>
+                    )}
+                    {hasUpdate && <span className="update-indicator" />}
+                    {(onKillSession || onHideSession) && (
+                      <div className="session-menu-container">
+                        <button
+                          className="session-menu-btn"
+                          onClick={(e) => handleMenuClick(e, session.id)}
+                          title={lang === 'ko' ? '메뉴' : 'Menu'}
+                        >
+                          ⋮
+                        </button>
+                        {isMenuOpen && (
+                          <div className="session-menu">
+                            {onHideSession && (
+                              <button onClick={(e) => handleHideSession(e, session.id)}>
+                                {lang === 'ko' ? '숨기기' : 'Hide'}
+                              </button>
+                            )}
+                            {onKillSession && session.status === 'online' && (
+                              <button className="danger" onClick={(e) => handleKillSession(e, session.id)}>
+                                {lang === 'ko' ? '종료' : 'Kill'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {hasMultiplePanes && isExpanded && (
+                    <div className="pane-tree">
+                      {session.panes!.map((pane, idx) => (
+                        <div
+                          key={pane.id}
+                          className={`pane-tree-item ${currentSession === session.id && selectedPane === pane.id ? 'active' : ''}`}
+                          onClick={() => onSelectSession(session.id, pane.id)}
+                        >
+                          <span className="tree-line">{idx === session.panes!.length - 1 ? '└─' : '├─'}</span>
+                          <span className="pane-label">{pane.title || `Pane ${pane.index}`}</span>
+                          <span className="pane-size">({pane.width}×{pane.height})</span>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
