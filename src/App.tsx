@@ -6,7 +6,9 @@ import { Login } from './components/Login';
 import { TokenManager } from './components/TokenManager';
 import { OnboardingGuide } from './components/OnboardingGuide';
 import { InteractiveTour } from './components/onboarding';
+import { FileViewer, type FileViewerContent, type FileTab } from './components/FileViewer';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useCtrlKey } from './hooks/useCtrlKey';
 import { useOnboardingStore } from './stores/OnboardingStore';
 import { mockAgentService } from './services/MockAgentService';
 import { SessionInfo } from './types';
@@ -79,6 +81,13 @@ function App() {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
+  // FileViewer state
+  const [fileViewerFiles, setFileViewerFiles] = useState<FileTab[]>([]);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+
+  // Track Ctrl/Cmd key for file click hints
+  useCtrlKey();
+
   const handleScreen = useCallback((sessionId: string, data: string) => {
     // Use ref to always get current session value
     if (sessionId === currentSessionRef.current) {
@@ -106,13 +115,46 @@ function App() {
     ));
   }, []);
 
-  const { status, joinSession, sendKeys, createSession, sendResize, killSession } = useWebSocket({
+  const handleFileView = useCallback((sessionId: string, file: FileViewerContent) => {
+    if (sessionId === currentSessionRef.current) {
+      const newTab: FileTab = {
+        id: `${file.filename}-${Date.now()}`,
+        file,
+        addedAt: Date.now(),
+      };
+      setFileViewerFiles(prev => [...prev, newTab]);
+      setIsFileViewerOpen(true);
+    }
+  }, []);
+
+  const handleCloseFileViewer = useCallback(() => {
+    setIsFileViewerOpen(false);
+  }, []);
+
+  const handleCloseFile = useCallback((id: string) => {
+    setFileViewerFiles(prev => {
+      const next = prev.filter(f => f.id !== id);
+      if (next.length === 0) {
+        setIsFileViewerOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const { status, joinSession, sendKeys, createSession, sendResize, killSession, requestFileView } = useWebSocket({
     url: WS_URL,
     token: authToken,
     onScreen: handleScreen,
     onSessionList: handleSessionList,
     onSessionStatus: handleSessionStatus,
+    onFileView: handleFileView,
   });
+
+  const handleFileRequest = useCallback((path: string) => {
+    if (currentSessionRef.current) {
+      requestFileView(currentSessionRef.current, path);
+    }
+  }, [requestFileView]);
 
   const handleCreateSession = useCallback((machineId: string, sessionName: string) => {
     createSession(machineId, sessionName);
@@ -252,6 +294,7 @@ function App() {
               connectionStatus={isDemoSession ? 'connected' : status}
               onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
               onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
+              onFileClick={handleFileRequest}
               theme={theme}
             />
             <CommandBar
@@ -261,6 +304,14 @@ function App() {
           </>
         )}
       </div>
+      <FileViewer
+        files={fileViewerFiles}
+        isOpen={isFileViewerOpen}
+        onClose={handleCloseFileViewer}
+        onCloseFile={handleCloseFile}
+        onFileRequest={handleFileRequest}
+        theme={theme}
+      />
     </div>
   );
 }

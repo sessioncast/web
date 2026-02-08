@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConnectionStatus, Message, SessionInfo } from '../types';
+import { FileViewerContent } from '../components/FileViewer';
 import pako from 'pako';
 
 // Decode base64 to UTF-8 string
@@ -32,6 +33,7 @@ interface UseWebSocketOptions {
   onScreen?: (sessionId: string, data: string) => void;
   onSessionList?: (sessions: SessionInfo[]) => void;
   onSessionStatus?: (sessionId: string, status: string) => void;
+  onFileView?: (sessionId: string, file: FileViewerContent) => void;
 }
 
 export function useWebSocket({
@@ -40,6 +42,7 @@ export function useWebSocket({
   onScreen,
   onSessionList,
   onSessionStatus,
+  onFileView,
 }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
@@ -51,13 +54,15 @@ export function useWebSocket({
   const onScreenRef = useRef(onScreen);
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
+  const onFileViewRef = useRef(onFileView);
 
   // Update refs when callbacks change
   useEffect(() => {
     onScreenRef.current = onScreen;
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
-  }, [onScreen, onSessionList, onSessionStatus]);
+    onFileViewRef.current = onFileView;
+  }, [onScreen, onSessionList, onSessionStatus, onFileView]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -121,6 +126,27 @@ export function useWebSocket({
           case 'sessionStatus':
             if (message.session && message.status) {
               onSessionStatusRef.current?.(message.session, message.status);
+            }
+            break;
+          case 'file_view':
+            if (message.session && message.payload && message.meta) {
+              try {
+                const filePath = message.meta.path || message.meta.filename || 'unknown';
+                const filename = filePath.split('/').pop() || filePath;
+                const contentType = message.meta.contentType || 'text/plain';
+                const isBase64 = contentType.startsWith('image/');
+                const content = isBase64 ? message.payload : decodeBase64(message.payload);
+
+                const fileContent: FileViewerContent = {
+                  filename,
+                  contentType,
+                  content,
+                  path: filePath,
+                };
+                onFileViewRef.current?.(message.session, fileContent);
+              } catch (e) {
+                console.error('Failed to process file_view:', e);
+              }
             }
             break;
         }
@@ -222,6 +248,18 @@ export function useWebSocket({
     }
   }, []);
 
+  const requestFileView = useCallback((sessionId: string, filePath: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'file_view',
+        session: sessionId,
+        meta: {
+          path: filePath,
+        },
+      }));
+    }
+  }, []);
+
   useEffect(() => {
     connect();
     return () => {
@@ -242,5 +280,6 @@ export function useWebSocket({
     createSession,
     sendResize,
     killSession,
+    requestFileView,
   };
 }

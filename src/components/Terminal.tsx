@@ -1,8 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import { useCtrlKey } from '../hooks/useCtrlKey';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
+
+// Regex to match file paths in terminal output
+const FILE_PATH_REGEX = /(?:^|[\s'"(])((\/[\w./-]+|~\/[\w./-]+|\.\.?\/[\w./-]+)\.\w+)/;
 
 interface TerminalProps {
   sessionId: string | null;
@@ -11,6 +15,7 @@ interface TerminalProps {
   connectionStatus: string;
   onInput: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
+  onFileClick?: (path: string) => void;
   theme: 'dark' | 'light';
 }
 
@@ -37,12 +42,14 @@ export function Terminal({
   connectionStatus,
   onInput,
   onResize,
+  onFileClick,
   theme
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const isCtrlPressed = useCtrlKey();
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -98,10 +105,43 @@ export function Terminal({
         onInput(data);
       });
 
+      // Handle Ctrl/Cmd+Click on file paths
+      const xtermElement = terminalRef.current.querySelector('.xterm-screen');
+      if (xtermElement) {
+        xtermElement.addEventListener('mousedown', ((e: MouseEvent) => {
+          if (!(e.ctrlKey || e.metaKey) || !onFileClick) return;
+
+          const buffer = xterm.buffer.active;
+          const fontSize = 14; // hardcoded, matches xterm config
+          const charHeight = fontSize * 1.2;
+
+          const rect = (e.target as HTMLElement).getBoundingClientRect();
+          const row = Math.floor((e.clientY - rect.top) / charHeight);
+
+          const bufferRow = row + buffer.viewportY;
+          if (bufferRow < 0 || bufferRow >= buffer.length) return;
+
+          const line = buffer.getLine(bufferRow);
+          if (!line) return;
+
+          let lineText = '';
+          for (let i = 0; i < line.length; i++) {
+            lineText += line.getCell(i)?.getChars() || ' ';
+          }
+
+          const match = lineText.match(FILE_PATH_REGEX);
+          if (match && match[1]) {
+            e.preventDefault();
+            e.stopPropagation();
+            onFileClick(match[1]);
+          }
+        }) as EventListener);
+      }
+
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [sessionId, onInput]);
+  }, [sessionId, onInput, onFileClick]);
 
   // Handle window resize
   useEffect(() => {
@@ -155,7 +195,7 @@ export function Terminal({
   }, [writeToTerminal]);
 
   return (
-    <div className="terminal-container" data-tour="terminal">
+    <div className={`terminal-container ${isCtrlPressed ? 'ctrl-active' : ''}`} data-tour="terminal">
       <div className="terminal-header">
         <div className="header-left">
           <span className={`connection-status ${connectionStatus}`} />
