@@ -1,8 +1,7 @@
-.pane-grid {
+.pane-container {
+  position: relative;
   width: 100%;
   height: 100%;
-  gap: 1px;
-  background: var(--border-color, #444);
 }
 
 .pane-cell {
@@ -10,16 +9,17 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-primary, #1e1e1e);
-  border: none;
-  transition: box-shadow 0.15s;
+  border: 1px solid var(--border-color, #333);
+  box-sizing: border-box;
   cursor: pointer;
 }
 
 .pane-cell:hover {
-  box-shadow: inset 0 0 0 1px var(--accent, #8b5cf6);
+  border-color: var(--accent, #8b5cf6);
 }
 
 .pane-cell.active {
+  border-color: var(--accent, #8b5cf6);
   box-shadow: inset 0 0 0 1px var(--accent, #8b5cf6);
 }
 

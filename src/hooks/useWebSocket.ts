@@ -67,6 +67,7 @@ interface UseWebSocketOptions {
   url: string;
   token?: string | null;
   onScreen?: (sessionId: string, data: string) => void;
+  onPaneScreen?: (sessionId: string, paneId: string, data: string) => void;
   onSessionList?: (sessions: SessionInfo[]) => void;
   onSessionStatus?: (sessionId: string, status: string) => void;
   onFileView?: (sessionId: string, file: FileViewerContent) => void;
@@ -76,6 +77,7 @@ export function useWebSocket({
   url,
   token,
   onScreen,
+  onPaneScreen,
   onSessionList,
   onSessionStatus,
   onFileView,
@@ -88,6 +90,7 @@ export function useWebSocket({
 
   // Use refs for callbacks to prevent reconnection on callback changes
   const onScreenRef = useRef(onScreen);
+  const onPaneScreenRef = useRef(onPaneScreen);
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
   const onFileViewRef = useRef(onFileView);
@@ -95,10 +98,11 @@ export function useWebSocket({
   // Update refs when callbacks change
   useEffect(() => {
     onScreenRef.current = onScreen;
+    onPaneScreenRef.current = onPaneScreen;
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
     onFileViewRef.current = onFileView;
-  }, [onScreen, onSessionList, onSessionStatus, onFileView]);
+  }, [onScreen, onPaneScreen, onSessionList, onSessionStatus, onFileView]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -137,7 +141,11 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decoded = decodeBase64(message.payload);
-                onScreenRef.current?.(message.session, decoded);
+                if (message.meta?.pane) {
+                  onPaneScreenRef.current?.(message.session, message.meta.pane, decoded);
+                } else {
+                  onScreenRef.current?.(message.session, decoded);
+                }
               } catch (e) {
                 console.error('Failed to decode screen data:', e);
               }
@@ -148,10 +156,20 @@ export function useWebSocket({
             if (message.session && message.payload) {
               try {
                 const decompressed = decompressGzip(message.payload);
-                onScreenRef.current?.(message.session, decompressed);
+                if (message.meta?.pane) {
+                  onPaneScreenRef.current?.(message.session, message.meta.pane, decompressed);
+                } else {
+                  onScreenRef.current?.(message.session, decompressed);
+                }
               } catch (e) {
                 console.error('Failed to decompress screen data:', e);
               }
+            }
+            break;
+          case 'paneLayout':
+            // Pane layout changed - refresh session list to get updated panes
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({ type: 'listSessions' }));
             }
             break;
           case 'sessionList':
@@ -237,13 +255,17 @@ export function useWebSocket({
     }
   }, []);
 
-  const sendKeys = useCallback((sessionId: string, keys: string) => {
+  const sendKeys = useCallback((sessionId: string, keys: string, paneId?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+      const msg: Record<string, unknown> = {
         type: 'keys',
         session: sessionId,
         payload: keys,
-      }));
+      };
+      if (paneId) {
+        msg.meta = { pane: paneId };
+      }
+      wsRef.current.send(JSON.stringify(msg));
     }
   }, []);
 
@@ -293,6 +315,7 @@ export function useWebSocket({
         type: 'requestFileView',
         session: sessionId,
         meta: {
+          filePath: filePath,
           path: filePath,
         },
       }));

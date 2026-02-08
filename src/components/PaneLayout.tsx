@@ -34,9 +34,18 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
   const termRefs = useRef<Map<string, { xterm: XTerm; fitAddon: FitAddon }>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate grid dimensions
+  // Calculate total dimensions for percentage positioning
   const totalCols = Math.max(...panes.map(p => p.left + p.width), 1);
   const totalRows = Math.max(...panes.map(p => p.top + p.height), 1);
+
+  // Close tmux separator gaps: extend non-origin panes backward by 1 unit
+  const adjustedPanes = panes.map(p => {
+    const adjLeft = p.left > 0 ? p.left - 1 : 0;
+    const adjTop = p.top > 0 ? p.top - 1 : 0;
+    const adjWidth = p.width + (p.left > 0 ? 1 : 0);
+    const adjHeight = p.height + (p.top > 0 ? 1 : 0);
+    return { ...p, adjLeft, adjTop, adjWidth, adjHeight };
+  });
 
   // Initialize terminals for each pane
   useEffect(() => {
@@ -119,32 +128,30 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
   }, [panes.map(p => p.id).join(',')]);
 
   return (
-    <div
-      ref={containerRef}
-      className="pane-grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${totalCols}, 1fr)`,
-        gridTemplateRows: `repeat(${totalRows}, 1fr)`,
-      }}
-    >
-      {panes.map(pane => (
-        <div
-          key={pane.id}
-          className={`pane-cell ${activePaneId === pane.id ? 'active' : ''}`}
-          style={{
-            gridColumn: `${pane.left + 1} / ${pane.left + pane.width + 1}`,
-            gridRow: `${pane.top + 1} / ${pane.top + pane.height + 1}`,
-          }}
-          onClick={() => onPaneClick(pane.id)}
-        >
-          <div className="pane-header">
-            <span className="pane-title">{pane.title || `Pane ${pane.index}`}</span>
-            {pane.active && <span className="pane-active-badge">active</span>}
+    <div ref={containerRef} className="pane-container">
+      {adjustedPanes.map(pane => {
+        const isActive = activePaneId === pane.id;
+        return (
+          <div
+            key={pane.id}
+            className={`pane-cell ${isActive ? 'active' : ''}`}
+            style={{
+              position: 'absolute',
+              left: `${(pane.adjLeft / totalCols) * 100}%`,
+              top: `${(pane.adjTop / totalRows) * 100}%`,
+              width: `${(pane.adjWidth / totalCols) * 100}%`,
+              height: `${(pane.adjHeight / totalRows) * 100}%`,
+            }}
+            onClick={() => onPaneClick(pane.id)}
+          >
+            <div className="pane-header">
+              <span className="pane-title">Pane {pane.index}</span>
+              {isActive && <span className="pane-active-badge">active</span>}
+            </div>
+            <div className="pane-terminal" id={`pane-term-${pane.id}`} />
           </div>
-          <div className="pane-terminal" id={`pane-term-${pane.id}`} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

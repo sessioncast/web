@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SessionList } from './components/SessionList';
 import { Terminal, getTerminalWriter } from './components/Terminal';
+import { PaneLayout } from './components/PaneLayout';
 import { CommandBar } from './components/CommandBar';
 import { Login } from './components/Login';
 import { TokenManager } from './components/TokenManager';
@@ -80,6 +81,10 @@ function App() {
   const [fileViewerFiles, setFileViewerFiles] = useState<FileTab[]>([]);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
+  // Pane state
+  const [activePaneId, setActivePaneId] = useState<string | null>(null);
+  const [paneScreens, setPaneScreens] = useState<Map<string, string>>(new Map());
+
   // Track Ctrl/Cmd key for file click hints
   useCtrlKey();
 
@@ -95,6 +100,16 @@ function App() {
       setUpdatedSessions(prev => {
         const next = new Set(prev);
         next.add(sessionId);
+        return next;
+      });
+    }
+  }, []);
+
+  const handlePaneScreen = useCallback((sessionId: string, paneId: string, data: string) => {
+    if (sessionId === currentSessionRef.current) {
+      setPaneScreens(prev => {
+        const next = new Map(prev);
+        next.set(paneId, data);
         return next;
       });
     }
@@ -141,6 +156,7 @@ function App() {
     url: WS_URL,
     token: authToken,
     onScreen: handleScreen,
+    onPaneScreen: handlePaneScreen,
     onSessionList: handleSessionList,
     onSessionStatus: handleSessionStatus,
     onFileView: handleFileView,
@@ -185,6 +201,10 @@ function App() {
   const handleSelectSession = useCallback((sessionId: string) => {
     currentSessionRef.current = sessionId;
     setCurrentSession(sessionId);
+
+    // Clear pane screens when switching sessions
+    setPaneScreens(new Map());
+    setActivePaneId(null);
 
     if (sessionId === 'demo-session') {
       // Connect mock agent to terminal
@@ -282,16 +302,27 @@ function App() {
           <OnboardingGuide authToken={authToken} onAuthError={handleLogout} />
         ) : (
           <>
-            <Terminal
-              sessionId={currentSession}
-              sessionLabel={currentSessionInfo?.label || null}
-              status={currentSessionInfo?.status || 'offline'}
-              connectionStatus={isDemoSession ? 'connected' : status}
-              onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
-              onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
-              onFileClick={handleFileRequest}
-              theme={theme}
-            />
+            {currentSessionInfo?.panes && currentSessionInfo.panes.length > 1 ? (
+              <PaneLayout
+                panes={currentSessionInfo.panes}
+                paneScreens={paneScreens}
+                activePaneId={activePaneId}
+                onPaneClick={setActivePaneId}
+                onInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
+                theme={theme}
+              />
+            ) : (
+              <Terminal
+                sessionId={currentSession}
+                sessionLabel={currentSessionInfo?.label || null}
+                status={currentSessionInfo?.status || 'offline'}
+                connectionStatus={isDemoSession ? 'connected' : status}
+                onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
+                onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
+                onFileClick={handleFileRequest}
+                theme={theme}
+              />
+            )}
             <CommandBar
               onSend={handleSendCommand}
               disabled={!currentSession || (!isDemoSession && currentSessionInfo?.status !== 'online')}
