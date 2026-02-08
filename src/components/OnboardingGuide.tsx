@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../i18n';
-import { API_URL, RELAY_URL } from '../config/env';
+import { API_URL, WS_URL } from '../config/env';
 import './OnboardingGuide.css';
 
 interface OnboardingGuideProps {
@@ -69,7 +69,7 @@ export function OnboardingGuide({ authToken, onAuthError }: OnboardingGuideProps
 
   const configContent = `# ~/.sessioncast.yml
 machineId: my-machine
-relay: ${RELAY_URL}
+relay: ${WS_URL}
 token: ${agentToken || 'loading...'}`;
 
   if (loading) {
@@ -94,9 +94,7 @@ token: ${agentToken || 'loading...'}`;
             <h3>{t('step1Title')}</h3>
             <p>{t('step1Desc')}</p>
             <div className="code-block">
-              <code>git clone https://github.com/devload/sessioncast.git</code>
-              <code>cd sessioncast/agent</code>
-              <code>./mvnw clean package -DskipTests</code>
+              <code>npm install -g sessioncast-cli</code>
             </div>
           </div>
         </div>
@@ -105,7 +103,7 @@ token: ${agentToken || 'loading...'}`;
           <div className="step-number">2</div>
           <div className="step-content">
             <h3>{t('step2Title')}</h3>
-            <p>{t('step2Desc')} <code>~/.sessioncast.yml</code></p>
+            <p>{t('step2Desc')}</p>
             <div className="config-block">
               <pre>{configContent}</pre>
               <button
@@ -145,7 +143,7 @@ token: ${agentToken || 'loading...'}`;
             <h3>{t('step4Title')}</h3>
             <p>{t('step4Desc')}</p>
             <div className="code-block">
-              <code>java -jar target/host-agent-1.0.0.jar</code>
+              <code>sessioncast agent</code>
             </div>
             <p className="hint">{t('step4Hint')}</p>
           </div>
