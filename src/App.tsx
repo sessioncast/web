@@ -28,6 +28,19 @@ function getEmailFromToken(token: string | null): string | null {
   }
 }
 
+// Check if JWT token is expired
+function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    if (!decoded.exp) return false;
+    return decoded.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() => {
     // Check URL for token (OAuth2 redirect)
@@ -38,7 +51,13 @@ function App() {
       window.history.replaceState({}, document.title, '/');
       return urlToken;
     }
-    return localStorage.getItem('auth_token');
+    const savedToken = localStorage.getItem('auth_token');
+    // Auto-logout if token is expired
+    if (isTokenExpired(savedToken)) {
+      localStorage.removeItem('auth_token');
+      return null;
+    }
+    return savedToken;
   });
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<string | null>(null);
