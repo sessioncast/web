@@ -7,6 +7,11 @@
   transition: background-color 0.2s;
 }
 
+/* Prevent xterm viewport from scrolling (snapshot mode, scrollback: 0) */
+.terminal-container .xterm-viewport {
+  overflow-y: hidden !important;
+}
+
 .terminal-header {
   display: flex;
   justify-content: space-between;
@@ -122,4 +127,14 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.support-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.support-link:hover {
+  text-decoration: underline;
 }

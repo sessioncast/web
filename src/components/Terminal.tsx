@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { useCtrlKey } from '../hooks/useCtrlKey';
 import { transformSnapshotForWrite } from '../utils/snapshotWriter';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
@@ -52,9 +51,6 @@ export function Terminal({
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const isCtrlPressed = useCtrlKey();
-  const isScrolledUpRef = useRef(false);
-  const pendingDataRef = useRef<string | null>(null);
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -82,7 +78,7 @@ export function Terminal({
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         rows: 24,
         cols: 80,
-        scrollback: 100,
+        scrollback: 0,
         theme: theme === 'light' ? lightTheme : darkTheme,
       });
 
@@ -109,23 +105,6 @@ export function Terminal({
       xterm.onData((data) => {
         onInput(data);
       });
-
-      // Track scroll position to pause updates while user is scrolled up
-      const viewportEl = terminalRef.current?.querySelector('.xterm-viewport');
-      if (viewportEl) {
-        viewportEl.addEventListener('scroll', () => {
-          const vp = viewportEl as HTMLElement;
-          const atBottom = vp.scrollTop + vp.clientHeight >= vp.scrollHeight - 5;
-          isScrolledUpRef.current = !atBottom;
-          if (atBottom && pendingDataRef.current) {
-            // Flush pending data when user scrolls back to bottom
-            try {
-              xterm.write(pendingDataRef.current);
-            } catch {}
-            pendingDataRef.current = null;
-          }
-        });
-      }
 
       // Register file path link provider (xterm.js official API)
       // Highlights file paths on hover, click opens FileViewer
@@ -204,13 +183,7 @@ export function Terminal({
   const writeToTerminal = useCallback((data: string) => {
     if (xtermRef.current && isReady) {
       try {
-        const transformed = transformSnapshotForWrite(data);
-        if (isScrolledUpRef.current) {
-          // User is scrolled up - buffer latest data only, don't update screen
-          pendingDataRef.current = transformed;
-          return;
-        }
-        xtermRef.current.write(transformed);
+        xtermRef.current.write(transformSnapshotForWrite(data));
       } catch (e) {
         console.error('Failed to write to terminal:', e);
       }
@@ -225,7 +198,7 @@ export function Terminal({
   }, [writeToTerminal]);
 
   return (
-    <div className={`terminal-container ${isCtrlPressed ? 'ctrl-active' : ''}`} data-tour="terminal">
+    <div className="terminal-container" data-tour="terminal">
       <div className="terminal-header">
         <div className="header-left">
           <span className={`connection-status ${connectionStatus}`} />
@@ -236,7 +209,11 @@ export function Terminal({
         <div className="header-right">
           {sessionId && (
             <span className={`session-status ${status}`}>
-              {status === 'online' ? 'Connected' : 'Disconnected'}
+              {status === 'online' ? 'Connected' : (
+                <>
+                  Disconnected — <a href="mailto:devload@sessioncast.io" className="support-link">Help</a>
+                </>
+              )}
             </span>
           )}
         </div>

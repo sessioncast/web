@@ -216,7 +216,13 @@ export function SessionList({ sessions, currentSession, selectedPane, onSelectSe
           </div>
         ))}
         {sessions.length === 0 && (
-          <div className="no-sessions">{t('noSessions')}</div>
+          <div className="no-sessions">
+            <p>{t('noSessions')}</p>
+            <p className="support-hint">
+              {t('supportMessage')}<br />
+              <a href="mailto:devload@sessioncast.io">devload@sessioncast.io</a>
+            </p>
+          </div>
         )}
       </div>
 

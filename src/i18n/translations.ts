@@ -58,6 +58,8 @@ export const translations = {
     // Session list
     sessions: '세션',
     noSessions: '세션 없음',
+    supportMessage: '문제가 있거나 문의사항이 있으시면 메일 주세요:',
+    supportEmail: 'devload@sessioncast.io',
 
     // Token manager
     agentTokens: 'Agent 토큰',
@@ -156,6 +158,8 @@ export const translations = {
     // Session list
     sessions: 'Sessions',
     noSessions: 'No sessions',
+    supportMessage: 'Having trouble or have questions? Email us:',
+    supportEmail: 'devload@sessioncast.io',
 
     // Token manager
     agentTokens: 'Agent Tokens',

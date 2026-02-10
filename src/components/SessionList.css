@@ -284,6 +284,21 @@
   font-size: 14px;
 }
 
+.no-sessions .support-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.no-sessions .support-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.no-sessions .support-hint a:hover {
+  text-decoration: underline;
+}
+
 /* Footer - ThreadCast style */
 .session-list-footer {
   padding: 12px;
