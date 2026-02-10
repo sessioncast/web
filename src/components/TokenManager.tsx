@@ -7,11 +7,7 @@ interface TokenManagerProps {
   onClose: () => void;
 }
 
-// API URL - use Platform API server, not app server
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = isLocalhost
-  ? `${window.location.protocol}//${window.location.hostname}:8080`
-  : 'https://api.sessioncast.io';
+import { RELAY_API_URL } from '../config/urls';
 
 export function TokenManager({ authToken, onClose }: TokenManagerProps) {
   const { t } = useLanguage();
@@ -22,7 +18,7 @@ export function TokenManager({ authToken, onClose }: TokenManagerProps) {
 
   const fetchTokens = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/tokens`, {
+      const response = await fetch(`${RELAY_API_URL}/api/tokens`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -44,7 +40,7 @@ export function TokenManager({ authToken, onClose }: TokenManagerProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/tokens/generate`, {
+      const response = await fetch(`${RELAY_API_URL}/api/tokens/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -66,7 +62,7 @@ export function TokenManager({ authToken, onClose }: TokenManagerProps) {
 
   const handleRevokeToken = async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/tokens/${encodeURIComponent(token)}`, {
+      const response = await fetch(`${RELAY_API_URL}/api/tokens/${encodeURIComponent(token)}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,
