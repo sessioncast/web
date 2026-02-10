@@ -103,6 +103,7 @@ function App() {
   // Pane state
   const [activePaneId, setActivePaneId] = useState<string | null>(null);
   const [paneScreens, setPaneScreens] = useState<Map<string, string>>(new Map());
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   // Track Ctrl/Cmd key for file click hints
   useCtrlKey();
@@ -110,6 +111,7 @@ function App() {
   const handleScreen = useCallback((sessionId: string, data: string) => {
     // Use ref to always get current session value
     if (sessionId === currentSessionRef.current) {
+      setIsLoadingSession(false);
       const writer = getTerminalWriter();
       if (writer) {
         writer(data);
@@ -126,6 +128,7 @@ function App() {
 
   const handlePaneScreen = useCallback((sessionId: string, paneId: string, data: string) => {
     if (sessionId === currentSessionRef.current) {
+      setIsLoadingSession(false);
       setPaneScreens(prev => {
         const next = new Map(prev);
         next.set(paneId, data);
@@ -234,6 +237,7 @@ function App() {
     } else {
       // Disconnect mock agent and join real session
       mockAgentService.detach();
+      setIsLoadingSession(true);
       joinSession(sessionId);
     }
 
@@ -329,6 +333,7 @@ function App() {
                 onPaneClick={setActivePaneId}
                 onInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
                 theme={theme}
+                isLoading={isLoadingSession}
               />
             ) : (
               <Terminal
@@ -340,6 +345,7 @@ function App() {
                 onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
                 onFileClick={handleFileRequest}
                 theme={theme}
+                isLoading={isLoadingSession}
               />
             )}
             <CommandBar

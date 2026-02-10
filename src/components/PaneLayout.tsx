@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { PaneInfo } from '../types';
+import { transformSnapshotForWrite } from '../utils/snapshotWriter';
 import 'xterm/css/xterm.css';
 import './PaneLayout.css';
+import './Terminal.css';
 
 interface PaneLayoutProps {
   panes: PaneInfo[];
@@ -12,6 +14,7 @@ interface PaneLayoutProps {
   onPaneClick: (paneId: string) => void;
   onInput: (data: string, paneId: string) => void;
   theme: 'dark' | 'light';
+  isLoading?: boolean;
 }
 
 const darkTheme = {
@@ -30,7 +33,7 @@ const lightTheme = {
   selectionBackground: '#b4d5fe',
 };
 
-export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, theme }: PaneLayoutProps) {
+export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, theme, isLoading }: PaneLayoutProps) {
   const termRefs = useRef<Map<string, { xterm: XTerm; fitAddon: FitAddon }>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +104,7 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
       const ref = termRefs.current.get(paneId);
       if (ref) {
         try {
-          ref.xterm.write(data);
+          ref.xterm.write(transformSnapshotForWrite(data));
         } catch {}
       }
     }
@@ -129,6 +132,12 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
 
   return (
     <div ref={containerRef} className="pane-container">
+      {isLoading && (
+        <div className="terminal-loading-overlay">
+          <div className="terminal-loading-spinner" />
+          <span>Connecting to session...</span>
+        </div>
+      )}
       {adjustedPanes.map(pane => {
         const isActive = activePaneId === pane.id;
         return (

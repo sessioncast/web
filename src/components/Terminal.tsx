@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { useCtrlKey } from '../hooks/useCtrlKey';
+import { transformSnapshotForWrite } from '../utils/snapshotWriter';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
 
@@ -17,6 +18,7 @@ interface TerminalProps {
   onResize?: (cols: number, rows: number) => void;
   onFileClick?: (path: string) => void;
   theme: 'dark' | 'light';
+  isLoading?: boolean;
 }
 
 const darkTheme = {
@@ -43,13 +45,16 @@ export function Terminal({
   onInput,
   onResize,
   onFileClick,
-  theme
+  theme,
+  isLoading
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isCtrlPressed = useCtrlKey();
+  const isScrolledUpRef = useRef(false);
+  const pendingDataRef = useRef<string | null>(null);
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -77,7 +82,7 @@ export function Terminal({
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         rows: 24,
         cols: 80,
-        scrollback: 1000,
+        scrollback: 100,
         theme: theme === 'light' ? lightTheme : darkTheme,
       });
 
@@ -104,6 +109,23 @@ export function Terminal({
       xterm.onData((data) => {
         onInput(data);
       });
+
+      // Track scroll position to pause updates while user is scrolled up
+      const viewportEl = terminalRef.current?.querySelector('.xterm-viewport');
+      if (viewportEl) {
+        viewportEl.addEventListener('scroll', () => {
+          const vp = viewportEl as HTMLElement;
+          const atBottom = vp.scrollTop + vp.clientHeight >= vp.scrollHeight - 5;
+          isScrolledUpRef.current = !atBottom;
+          if (atBottom && pendingDataRef.current) {
+            // Flush pending data when user scrolls back to bottom
+            try {
+              xterm.write(pendingDataRef.current);
+            } catch {}
+            pendingDataRef.current = null;
+          }
+        });
+      }
 
       // Register file path link provider (xterm.js official API)
       // Highlights file paths on hover, click opens FileViewer
@@ -182,8 +204,13 @@ export function Terminal({
   const writeToTerminal = useCallback((data: string) => {
     if (xtermRef.current && isReady) {
       try {
-        // Data is already decoded (UTF-8 string) from useWebSocket
-        xtermRef.current.write(data);
+        const transformed = transformSnapshotForWrite(data);
+        if (isScrolledUpRef.current) {
+          // User is scrolled up - buffer latest data only, don't update screen
+          pendingDataRef.current = transformed;
+          return;
+        }
+        xtermRef.current.write(transformed);
       } catch (e) {
         console.error('Failed to write to terminal:', e);
       }
@@ -216,7 +243,15 @@ export function Terminal({
       </div>
       <div className="terminal-content">
         {sessionId ? (
-          <div ref={terminalRef} className="xterm-wrapper" />
+          <>
+            <div ref={terminalRef} className="xterm-wrapper" />
+            {isLoading && (
+              <div className="terminal-loading-overlay">
+                <div className="terminal-loading-spinner" />
+                <span>Connecting to session...</span>
+              </div>
+            )}
+          </>
         ) : (
           <div className="terminal-placeholder">
             <p>Select a session from the sidebar to connect</p>
