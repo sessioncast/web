@@ -88,32 +88,35 @@ export function useWebSocket({
   const currentSessionRef = useRef<string | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Use refs for callbacks to prevent reconnection on callback changes
+  // Use refs for callbacks and token to prevent reconnection on changes
+  const tokenRef = useRef(token);
   const onScreenRef = useRef(onScreen);
   const onPaneScreenRef = useRef(onPaneScreen);
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
   const onFileViewRef = useRef(onFileView);
 
-  // Update refs when callbacks change
+  // Update refs when values change (no reconnection triggered)
   useEffect(() => {
+    tokenRef.current = token;
     onScreenRef.current = onScreen;
     onPaneScreenRef.current = onPaneScreen;
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
     onFileViewRef.current = onFileView;
-  }, [onScreen, onPaneScreen, onSessionList, onSessionStatus, onFileView]);
+  }, [token, onScreen, onPaneScreen, onSessionList, onSessionStatus, onFileView]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
     if (wsRef.current?.readyState === WebSocket.OPEN ||
-        wsRef.current?.readyState === WebSocket.CONNECTING) {
+      wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
     setStatus('connecting');
     // Add token as query parameter for authentication
-    const wsUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+    const currentToken = tokenRef.current;
+    const wsUrl = currentToken ? `${url}?token=${encodeURIComponent(currentToken)}` : url;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -215,8 +218,11 @@ export function useWebSocket({
     ws.onclose = () => {
       console.log('WebSocket disconnected');
       setStatus('disconnected');
-      wsRef.current = null;
-      scheduleReconnect();
+      // Only reconnect if this is still the active connection
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+        scheduleReconnect();
+      }
     };
 
     ws.onerror = (error) => {
@@ -224,7 +230,7 @@ export function useWebSocket({
     };
 
     wsRef.current = ws;
-  }, [url, token]); // Only reconnect when url or token changes
+  }, [url]); // Only reconnect when url changes
 
   const scheduleReconnect = useCallback(() => {
     // Clear any existing reconnect timeout
@@ -322,17 +328,28 @@ export function useWebSocket({
     }
   }, []);
 
+  // Connect when token becomes available (null→value), but don't
+  // reconnect on token value changes (value→value) to avoid flickering
+  const hasConnectedRef = useRef(false);
+
   useEffect(() => {
-    connect();
+    if (token && !hasConnectedRef.current) {
+      hasConnectedRef.current = true;
+      connect();
+    }
     return () => {
       // Clear reconnect timeout on cleanup
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
-      wsRef.current?.close();
+      // Clear ref BEFORE closing so onclose handler knows this is stale
+      const ws = wsRef.current;
+      wsRef.current = null;
+      ws?.close();
+      hasConnectedRef.current = false;
     };
-  }, [connect]);
+  }, [token, connect]);
 
   return {
     status,
