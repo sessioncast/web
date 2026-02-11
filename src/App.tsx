@@ -140,8 +140,16 @@ function App() {
         next.set(paneId, data);
         return next;
       });
+      // Fallback: if panes not set yet, also write to main terminal so screen isn't blank
+      const session = sessions.find(s => s.id === sessionId);
+      if (!session?.panes || session.panes.length <= 1) {
+        const writer = getTerminalWriter();
+        if (writer) {
+          writer(data);
+        }
+      }
     }
-  }, []);
+  }, [sessions]);
 
   const handleSessionList = useCallback((newSessions: SessionInfo[]) => {
     setSessions(newSessions);
