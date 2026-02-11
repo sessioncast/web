@@ -27,10 +27,10 @@ export function ShareModal({ sessionId, authToken, onClose }: ShareModalProps) {
     setError(null);
 
     try {
-      const body: Record<string, string> = { mode };
+      const body: Record<string, string> = { sessionId, mode };
       if (mode === 'EMAIL') body.targetEmail = email.trim();
 
-      const res = await fetch(`${API_URL}/api/sessions/${sessionId}/share-link`, {
+      const res = await fetch(`${API_URL}/api/share-links`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
