@@ -20,9 +20,10 @@ interface SessionListProps {
   onShareSession?: (sessionId: string) => void;
   updatedSessions?: Set<string>;
   userEmail?: string | null;
+  onClearOfflineSessions?: () => void;
 }
 
-export function SessionList({ sessions, currentSession, selectedPane, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, onShareSession, updatedSessions, userEmail }: SessionListProps) {
+export function SessionList({ sessions, currentSession, selectedPane, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, onShareSession, updatedSessions, userEmail, onClearOfflineSessions }: SessionListProps) {
   const { t, lang, setLang } = useLanguage();
   const { startTour } = useOnboardingStore();
   const [creatingForMachine, setCreatingForMachine] = useState<string | null>(null);
@@ -129,6 +130,15 @@ export function SessionList({ sessions, currentSession, selectedPane, onSelectSe
                   title={lang === 'ko' ? '새 세션' : 'New session'}
                 >
                   +
+                </button>
+              )}
+              {onClearOfflineSessions && machineSessions.every(s => s.status === 'offline') && (
+                <button
+                  className="clear-offline-btn"
+                  onClick={() => onClearOfflineSessions()}
+                  title={lang === 'ko' ? 'Offline 세션 정리 (30분 후 자동 정리됨)' : 'Clear offline sessions (auto-cleared after 30 min)'}
+                >
+                  ✕
                 </button>
               )}
             </div>

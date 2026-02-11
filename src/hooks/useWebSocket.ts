@@ -322,6 +322,12 @@ export function useWebSocket({
     }
   }, []);
 
+  const clearOfflineSessions = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'clearOfflineSessions' }));
+    }
+  }, []);
+
   const requestFileView = useCallback((sessionId: string, filePath: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
@@ -367,5 +373,6 @@ export function useWebSocket({
     sendResize,
     killSession,
     requestFileView,
+    clearOfflineSessions,
   };
 }

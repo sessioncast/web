@@ -194,7 +194,7 @@ function App() {
     });
   }, []);
 
-  const { status, joinSession, sendKeys, createSession, sendResize, killSession, requestFileView } = useWebSocket({
+  const { status, joinSession, sendKeys, createSession, sendResize, killSession, requestFileView, clearOfflineSessions } = useWebSocket({
     url: WS_URL,
     token: authToken,
     onScreen: handleScreen,
@@ -335,6 +335,7 @@ function App() {
         onShareSession={setShareSessionId}
         updatedSessions={updatedSessions}
         userEmail={getEmailFromToken(authToken)}
+        onClearOfflineSessions={clearOfflineSessions}
       />
       {showTokenManager && authToken && (
         <TokenManager
