@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ConnectionStatus, Message, SessionInfo } from '../types';
+import { ConnectionStatus, Message, SessionInfo, PaneInfo } from '../types';
 import { FileViewerContent } from '../components/FileViewer';
 import pako from 'pako';
 
@@ -71,6 +71,7 @@ interface UseWebSocketOptions {
   onSessionList?: (sessions: SessionInfo[]) => void;
   onSessionStatus?: (sessionId: string, status: string) => void;
   onFileView?: (sessionId: string, file: FileViewerContent) => void;
+  onPaneLayout?: (sessionId: string, panes: PaneInfo[]) => void;
 }
 
 export function useWebSocket({
@@ -81,6 +82,7 @@ export function useWebSocket({
   onSessionList,
   onSessionStatus,
   onFileView,
+  onPaneLayout,
 }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
@@ -95,6 +97,7 @@ export function useWebSocket({
   const onSessionListRef = useRef(onSessionList);
   const onSessionStatusRef = useRef(onSessionStatus);
   const onFileViewRef = useRef(onFileView);
+  const onPaneLayoutRef = useRef(onPaneLayout);
 
   // Update refs when values change (no reconnection triggered)
   useEffect(() => {
@@ -104,7 +107,8 @@ export function useWebSocket({
     onSessionListRef.current = onSessionList;
     onSessionStatusRef.current = onSessionStatus;
     onFileViewRef.current = onFileView;
-  }, [token, onScreen, onPaneScreen, onSessionList, onSessionStatus, onFileView]);
+    onPaneLayoutRef.current = onPaneLayout;
+  }, [token, onScreen, onPaneScreen, onSessionList, onSessionStatus, onFileView, onPaneLayout]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
@@ -170,9 +174,12 @@ export function useWebSocket({
             }
             break;
           case 'paneLayout':
-            // Pane layout changed - refresh session list to get updated panes
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({ type: 'listSessions' }));
+            // Pane layout changed — directly update panes on the session
+            if (message.session && message.payload) {
+              try {
+                const panes: PaneInfo[] = JSON.parse(message.payload);
+                onPaneLayoutRef.current?.(message.session, panes);
+              } catch { /* ignore parse errors */ }
             }
             break;
           case 'sessionList':

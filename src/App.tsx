@@ -9,11 +9,12 @@ import { OnboardingGuide } from './components/OnboardingGuide';
 import { InteractiveTour } from './components/onboarding';
 import { FileViewer, type FileViewerContent, type FileTab } from './components/FileViewer';
 import { ShareModal } from './components/ShareModal';
+import { ActiveShareBar } from './components/ActiveShareBar';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useCtrlKey } from './hooks/useCtrlKey';
 import { useOnboardingStore } from './stores/OnboardingStore';
 import { mockAgentService } from './services/MockAgentService';
-import { SessionInfo } from './types';
+import { SessionInfo, PaneInfo } from './types';
 import { WS_URL } from './config/env';
 import './App.css';
 
@@ -103,6 +104,7 @@ function App() {
 
   // Share modal state
   const [shareSessionId, setShareSessionId] = useState<string | null>(null);
+  const [shareRefreshKey, setShareRefreshKey] = useState(0);
 
   // Pane state
   const [activePaneId, setActivePaneId] = useState<string | null>(null);
@@ -151,6 +153,12 @@ function App() {
     ));
   }, []);
 
+  const handlePaneLayout = useCallback((sessionId: string, panes: PaneInfo[]) => {
+    setSessions(prev => prev.map(s =>
+      s.id === sessionId ? { ...s, panes: panes.length > 1 ? panes : undefined } : s
+    ));
+  }, []);
+
   const handleFileView = useCallback((sessionId: string, file: FileViewerContent) => {
     if (sessionId === currentSessionRef.current) {
       const newTab: FileTab = {
@@ -186,6 +194,7 @@ function App() {
     onSessionList: handleSessionList,
     onSessionStatus: handleSessionStatus,
     onFileView: handleFileView,
+    onPaneLayout: handlePaneLayout,
   });
 
   const handleFileRequest = useCallback((path: string) => {
@@ -329,7 +338,8 @@ function App() {
         <ShareModal
           sessionId={shareSessionId}
           authToken={authToken}
-          onClose={() => setShareSessionId(null)}
+          onClose={() => { setShareSessionId(null); setShareRefreshKey(k => k + 1); }}
+          onLinkCreated={() => setShareRefreshKey(k => k + 1)}
         />
       )}
       <div className="main-content">
@@ -337,6 +347,9 @@ function App() {
           <OnboardingGuide authToken={authToken} onAuthError={handleLogout} />
         ) : (
           <>
+            {currentSession && authToken && (
+              <ActiveShareBar sessionId={currentSession} authToken={authToken} refreshKey={shareRefreshKey} />
+            )}
             {currentSessionInfo?.panes && currentSessionInfo.panes.length > 1 ? (
               <PaneLayout
                 panes={currentSessionInfo.panes}
