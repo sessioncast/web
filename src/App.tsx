@@ -108,6 +108,7 @@ function App() {
 
   // Pane state
   const [activePaneId, setActivePaneId] = useState<string | null>(null);
+  const activePaneIdRef = useRef<string | null>(null);
   const [paneScreens, setPaneScreens] = useState<Map<string, string>>(new Map());
   const [isLoadingSession, setIsLoadingSession] = useState(false);
 
@@ -140,12 +141,18 @@ function App() {
         next.set(paneId, data);
         return next;
       });
-      // Fallback: if panes not set yet, also write to main terminal so screen isn't blank
-      const session = sessions.find(s => s.id === sessionId);
-      if (!session?.panes || session.panes.length <= 1) {
+      // Write to main terminal when: single pane selected, or panes not set yet
+      const selectedPane = activePaneIdRef.current;
+      if (selectedPane === paneId) {
+        // Single pane view — write this pane to terminal
         const writer = getTerminalWriter();
-        if (writer) {
-          writer(data);
+        if (writer) writer(data);
+      } else if (!selectedPane) {
+        // Layout mode — fallback to main terminal if panes not set yet
+        const session = sessions.find(s => s.id === sessionId);
+        if (!session?.panes || session.panes.length <= 1) {
+          const writer = getTerminalWriter();
+          if (writer) writer(data);
         }
       }
     }
@@ -241,13 +248,16 @@ function App() {
     mockAgentService.handleInput(data);
   }, []);
 
-  const handleSelectSession = useCallback((sessionId: string) => {
+  const handleSelectSession = useCallback((sessionId: string, paneId?: string | null) => {
     currentSessionRef.current = sessionId;
     setCurrentSession(sessionId);
 
     // Clear pane screens when switching sessions
     setPaneScreens(new Map());
-    setActivePaneId(null);
+    // 'layout' = show all panes, specific paneId = single pane view, null = default
+    const resolvedPaneId = paneId === 'layout' ? null : (paneId || null);
+    activePaneIdRef.current = resolvedPaneId;
+    setActivePaneId(resolvedPaneId);
 
     if (sessionId === 'demo-session') {
       // Connect mock agent to terminal
@@ -359,12 +369,12 @@ function App() {
             {currentSession && authToken && (
               <ActiveShareBar sessionId={currentSession} authToken={authToken} refreshKey={shareRefreshKey} />
             )}
-            {currentSessionInfo?.panes && currentSessionInfo.panes.length > 1 ? (
+            {currentSessionInfo?.panes && currentSessionInfo.panes.length > 1 && !activePaneId ? (
               <PaneLayout
                 panes={currentSessionInfo.panes}
                 paneScreens={paneScreens}
                 activePaneId={activePaneId}
-                onPaneClick={setActivePaneId}
+                onPaneClick={(id) => { activePaneIdRef.current = id; setActivePaneId(id); }}
                 onInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
                 theme={theme}
                 isLoading={isLoadingSession}
@@ -375,7 +385,7 @@ function App() {
                 sessionLabel={currentSessionInfo?.label || null}
                 status={currentSessionInfo?.status || 'offline'}
                 connectionStatus={isDemoSession ? 'connected' : status}
-                onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data)}
+                onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data, activePaneId || undefined)}
                 onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
                 onFileClick={handleFileRequest}
                 theme={theme}
