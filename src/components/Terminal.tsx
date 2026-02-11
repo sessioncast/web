@@ -16,6 +16,7 @@ interface TerminalProps {
   onInput: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
   onFileClick?: (path: string) => void;
+  onShare?: () => void;
   theme: 'dark' | 'light';
   isLoading?: boolean;
 }
@@ -44,14 +45,34 @@ export function Terminal({
   onInput,
   onResize,
   onFileClick,
+  onShare,
   theme,
   isLoading
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [keyboardHidden, setKeyboardHidden] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
+
+  // Listen for fullscreen change (e.g. user presses Esc)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -69,7 +90,6 @@ export function Terminal({
   useEffect(() => {
     if (!sessionId || !terminalRef.current || xtermRef.current) return;
 
-    // Small delay to ensure DOM is fully rendered
     const initTimer = setTimeout(() => {
       if (!terminalRef.current) return;
 
@@ -85,30 +105,20 @@ export function Terminal({
 
       const fitAddon = new FitAddon();
       xterm.loadAddon(fitAddon);
-
       xterm.open(terminalRef.current);
 
       xtermRef.current = xterm;
       fitAddonRef.current = fitAddon;
 
-      // Fit after a delay
       setTimeout(() => {
         if (fitAddonRef.current && terminalRef.current) {
-          try {
-            fitAddonRef.current.fit();
-          } catch (e) {
-            // ignore
-          }
+          try { fitAddonRef.current.fit(); } catch {}
         }
         setIsReady(true);
       }, 50);
 
-      xterm.onData((data) => {
-        onInput(data);
-      });
+      xterm.onData((data) => { onInput(data); });
 
-      // Register file path link provider (xterm.js official API)
-      // Highlights file paths on hover, click opens FileViewer
       if (onFileClick) {
         xterm.registerLinkProvider({
           provideLinks(bufferLineNumber: number, callback: (links: any[] | undefined) => void) {
@@ -142,36 +152,28 @@ export function Terminal({
           },
         });
       }
-
     }, 100);
 
     return () => clearTimeout(initTimer);
   }, [sessionId, onInput, onFileClick]);
 
-  // Handle window resize
+  // Handle container resize
   useEffect(() => {
-    if (!isReady) return;
-
+    if (!isReady || !terminalRef.current) return;
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
         try {
           fitAddonRef.current.fit();
-          // Send new size to server
           const cols = xtermRef.current.cols;
           const rows = xtermRef.current.rows;
-          if (onResize && cols > 0 && rows > 0) {
-            onResize(cols, rows);
-          }
-        } catch (e) {
-          // ignore
-        }
+          if (onResize && cols > 0 && rows > 0) { onResize(cols, rows); }
+        } catch {}
       }
     };
-
-    window.addEventListener('resize', handleResize);
-    // Trigger initial resize
+    const ro = new ResizeObserver(() => handleResize());
+    ro.observe(terminalRef.current);
     handleResize();
-    return () => window.removeEventListener('resize', handleResize);
+    return () => ro.disconnect();
   }, [isReady, onResize]);
 
   // Handle theme change
@@ -195,69 +197,71 @@ export function Terminal({
 
   useEffect(() => {
     (window as any).__writeToTerminal = writeToTerminal;
-    return () => {
-      delete (window as any).__writeToTerminal;
-    };
+    return () => { delete (window as any).__writeToTerminal; };
   }, [writeToTerminal]);
 
   return (
-    <div className="terminal-container" data-tour="terminal">
-      <div className="terminal-header">
-        <div className="header-left">
-          <span className={`connection-status ${connectionStatus}`} />
-          <span className="session-title">
-            {sessionLabel || sessionId || 'Select a session'}
-          </span>
+    <div className="terminal-container" data-tour="terminal" ref={containerRef}>
+      {/* Header */}
+      <div className="term-header">
+        <div className="term-header-left">
+          {sessionId ? (
+            <div className="term-tab">
+              <span className={`term-tab-dot ${status}`} />
+              <span className="term-tab-name">{sessionLabel || sessionId}</span>
+            </div>
+          ) : (
+            <span className="term-header-brand">SessionCast</span>
+          )}
         </div>
-        <div className="header-right">
+
+        <div className="term-header-right">
           {sessionId && (
             <>
-              <button
-                className={`keyboard-toggle ${keyboardHidden ? 'hidden-state' : ''}`}
-                onClick={() => {
-                  const textarea = terminalRef.current?.querySelector('textarea');
-                  if (keyboardHidden) {
-                    textarea?.focus();
-                    setKeyboardHidden(false);
-                  } else {
-                    textarea?.blur();
-                    setKeyboardHidden(true);
-                  }
-                }}
-                title={keyboardHidden ? 'Show keyboard' : 'Hide keyboard'}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="4" width="20" height="14" rx="2" />
-                  <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
-                  {keyboardHidden && <line x1="2" y1="2" x2="22" y2="22" strokeWidth="2.5" />}
-                </svg>
-              </button>
-              <span className={`session-status ${status}`}>
-                {status === 'online' ? 'Connected' : (
-                  <>
-                    Disconnected — <a href="mailto:devload@sessioncast.io" className="support-link">Help</a>
-                  </>
-                )}
+              {/* Connection status text */}
+              <span className={`term-conn-label ${connectionStatus}`}>
+                {connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
               </span>
+
+              {/* Share */}
+              {onShare && status === 'online' && (
+                <button className="term-header-btn" onClick={onShare} title="Share">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                    <polyline points="16 6 12 2 8 6"/>
+                    <line x1="12" y1="2" x2="12" y2="15"/>
+                  </svg>
+                </button>
+              )}
+
+              {/* Fullscreen */}
+              <button className="term-header-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+                {isFullscreen ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="4 14 10 14 10 20"/>
+                    <polyline points="20 10 14 10 14 4"/>
+                    <line x1="14" y1="10" x2="21" y2="3"/>
+                    <line x1="3" y1="21" x2="10" y2="14"/>
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 3 21 3 21 9"/>
+                    <polyline points="9 21 3 21 3 15"/>
+                    <line x1="21" y1="3" x2="14" y2="10"/>
+                    <line x1="3" y1="21" x2="10" y2="14"/>
+                  </svg>
+                )}
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {/* Content */}
       <div className="terminal-content">
         {sessionId ? (
           <>
-            <div
-              ref={terminalRef}
-              className="xterm-wrapper"
-              onTouchStart={keyboardHidden ? (e) => {
-                // Prevent xterm from focusing textarea when keyboard is hidden
-                const textarea = terminalRef.current?.querySelector('textarea');
-                if (textarea) {
-                  e.preventDefault();
-                  textarea.blur();
-                }
-              } : undefined}
-            />
+            <div ref={terminalRef} className="xterm-wrapper" />
             {isLoading && (
               <div className="terminal-loading-overlay">
                 <div className="terminal-loading-spinner" />
@@ -267,7 +271,19 @@ export function Terminal({
           </>
         ) : (
           <div className="terminal-placeholder">
-            <p>Select a session from the sidebar to connect</p>
+            <div className="placeholder-content">
+              <div className="placeholder-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5"/>
+                  <line x1="12" y1="19" x2="20" y2="19"/>
+                </svg>
+              </div>
+              <div className="placeholder-prompt">
+                <span className="placeholder-cursor">_</span>
+              </div>
+              <h3 className="placeholder-title">Select a session</h3>
+              <p className="placeholder-desc">Choose a session from the sidebar to start viewing</p>
+            </div>
           </div>
         )}
       </div>

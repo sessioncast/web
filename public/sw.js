@@ -1,7 +1,5 @@
-const CACHE_NAME = 'sessioncast-v1';
+const CACHE_NAME = 'sessioncast-v2';
 const urlsToCache = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'

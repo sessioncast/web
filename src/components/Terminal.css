@@ -1,5 +1,6 @@
 .terminal-container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
@@ -12,96 +13,197 @@
   overflow-y: hidden !important;
 }
 
-.terminal-header {
+/* ── Header — macOS window style ── */
+
+.term-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 12px;
   background-color: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.2s, border-color 0.2s;
+  user-select: none;
+  flex-shrink: 0;
 }
 
-.header-left {
+.term-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.connection-status {
-  width: 8px;
-  height: 8px;
+.term-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Session tab chip */
+.term-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  max-width: 220px;
+}
+
+.term-tab-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.connection-status.connected {
+.term-tab-dot.online {
   background-color: var(--accent);
+  box-shadow: 0 0 5px rgba(16, 163, 127, 0.5);
 }
 
-.connection-status.connecting {
-  background-color: var(--warning);
-  animation: pulse 1.5s infinite;
+.term-tab-dot.offline {
+  background-color: var(--text-muted);
+  opacity: 0.5;
 }
 
-.connection-status.disconnected {
-  background-color: var(--danger);
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.session-title {
-  font-size: 14px;
+.term-tab-name {
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.session-status {
+.term-header-brand {
   font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 4px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: -0.2px;
 }
 
-.session-status.online {
-  background-color: rgba(16, 163, 127, 0.2);
+/* Connection label */
+.term-conn-label {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 0;
+  margin-right: 4px;
+}
+
+.term-conn-label.connected {
   color: var(--accent);
 }
 
-.session-status.offline {
-  background-color: rgba(239, 68, 68, 0.2);
+.term-conn-label.connecting {
+  color: var(--warning);
+}
+
+.term-conn-label.disconnected {
   color: var(--danger);
 }
 
+/* Header action buttons */
+.term-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.term-header-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Content ── */
+
 .terminal-content {
   flex: 1;
+  min-height: 0;
   display: flex;
   position: relative;
 }
 
 .xterm-wrapper {
   flex: 1;
+  min-height: 0;
   padding: 4px;
   overflow: hidden;
 }
+
+/* ── Placeholder (no session) ── */
 
 .terminal-placeholder {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
 }
 
-.terminal-placeholder p {
-  font-size: 16px;
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 32px;
+  animation: placeholder-fade-in 0.5s ease-out;
 }
+
+.placeholder-icon {
+  color: var(--text-muted);
+  opacity: 0.2;
+}
+
+.placeholder-prompt {
+  display: flex;
+  align-items: center;
+}
+
+.placeholder-cursor {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  animation: blink-cursor 1s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes placeholder-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.placeholder-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+/* ── Loading overlay ── */
 
 .terminal-loading-overlay {
   position: absolute;
@@ -115,43 +217,25 @@
   z-index: 10;
   color: var(--text-muted);
   font-size: 14px;
+  animation: placeholder-fade-in 0.2s ease-out;
 }
 
 .terminal-loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-color);
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--border-color);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.keyboard-toggle {
-  background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  font-size: 16px;
-  padding: 3px 8px;
-  cursor: pointer;
-  margin-right: 8px;
-  line-height: 1;
-  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
-}
-
-.keyboard-toggle:hover {
-  color: var(--text-primary);
-  border-color: var(--border-hover);
-}
-
-.keyboard-toggle.hidden-state {
-  background-color: var(--bg-hover);
-  color: var(--text-muted);
-  border-color: var(--border-hover);
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .support-link {

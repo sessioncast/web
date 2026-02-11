@@ -14,6 +14,9 @@ interface PaneLayoutProps {
   onPaneClick: (paneId: string) => void;
   onInput: (data: string, paneId: string) => void;
   onPaneResize?: (paneId: string, cols: number, rows: number) => void;
+  sessionLabel?: string | null;
+  status?: 'online' | 'offline';
+  connectionStatus?: string;
   theme: 'dark' | 'light';
   isLoading?: boolean;
 }
@@ -34,7 +37,7 @@ const lightTheme = {
   selectionBackground: '#b4d5fe',
 };
 
-export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, onPaneResize, theme, isLoading }: PaneLayoutProps) {
+export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, onPaneResize, sessionLabel, status, connectionStatus, theme, isLoading }: PaneLayoutProps) {
   const termRefs = useRef<Map<string, { xterm: XTerm; fitAddon: FitAddon }>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -116,8 +119,10 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
     }
   }, [theme]);
 
-  // Fit terminals to container and send resize to tmux
+  // Fit terminals to container (window resize, CommandBar toggle, etc.)
   useEffect(() => {
+    if (!containerRef.current) return;
+
     const handleResize = () => {
       for (const [paneId, ref] of termRefs.current.entries()) {
         try {
@@ -130,14 +135,29 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
         } catch {}
       }
     };
-    window.addEventListener('resize', handleResize);
-    // Fit after layout settles
+
+    const ro = new ResizeObserver(() => handleResize());
+    ro.observe(containerRef.current);
     setTimeout(handleResize, 200);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => ro.disconnect();
   }, [panes.map(p => p.id).join(','), onPaneResize]);
 
   return (
-    <div ref={containerRef} className="pane-container">
+    <div className="terminal-container">
+      <div className="terminal-header">
+        <div className="header-left">
+          <span className={`connection-status ${connectionStatus || 'disconnected'}`} />
+          <span className="session-title">
+            {sessionLabel || 'Multi-Pane'}
+          </span>
+        </div>
+        <div className="header-right">
+          <span className={`session-status ${status || 'offline'}`}>
+            {status === 'online' ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+      <div ref={containerRef} className="pane-container">
       {isLoading && (
         <div className="terminal-loading-overlay">
           <div className="terminal-loading-spinner" />
@@ -167,6 +187,7 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

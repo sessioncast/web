@@ -10,6 +10,7 @@ import { InteractiveTour } from './components/onboarding';
 import { FileViewer, type FileViewerContent, type FileTab } from './components/FileViewer';
 import { ShareModal } from './components/ShareModal';
 import { ActiveShareBar } from './components/ActiveShareBar';
+import { ToastContainer, toast } from './components/Toast';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useCtrlKey } from './hooks/useCtrlKey';
 import { useOnboardingStore } from './stores/OnboardingStore';
@@ -92,6 +93,7 @@ function App() {
 
   const [showTokenManager, setShowTokenManager] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandBarHidden, setCommandBarHidden] = useState(false);
   const [updatedSessions, setUpdatedSessions] = useState<Set<string>>(new Set());
   const [hiddenSessions, setHiddenSessions] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('hidden_sessions');
@@ -166,6 +168,14 @@ function App() {
     setSessions(prev => prev.map(s =>
       s.id === sessionId ? { ...s, status: status as 'online' | 'offline' } : s
     ));
+    // Toast for session status change
+    if (sessionId === currentSessionRef.current) {
+      if (status === 'offline') {
+        toast('error', 'Session disconnected');
+      } else if (status === 'online') {
+        toast('success', 'Session reconnected');
+      }
+    }
   }, []);
 
   const handlePaneLayout = useCallback((sessionId: string, panes: PaneInfo[]) => {
@@ -211,6 +221,19 @@ function App() {
     onFileView: handleFileView,
     onPaneLayout: handlePaneLayout,
   });
+
+  // Toast for WebSocket connection status
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev === status) return;
+    if (status === 'connected' && prev === 'connecting') {
+      toast('success', 'Connected to server');
+    } else if (status === 'disconnected' && prev === 'connected') {
+      toast('error', 'Disconnected from server');
+    }
+  }, [status]);
 
   const handleFileRequest = useCallback((path: string) => {
     if (currentSessionRef.current) {
@@ -295,6 +318,13 @@ function App() {
     }
   }, [currentSession, sendKeys]);
 
+  // Share current session from terminal header
+  const handleShareFromHeader = useCallback(() => {
+    if (currentSession) {
+      setShareSessionId(currentSession);
+    }
+  }, [currentSession]);
+
   // Cleanup demo mode when real sessions are available
   useEffect(() => {
     if (sessions.length > 0 && isDemoMode && !isTourActive) {
@@ -313,6 +343,9 @@ function App() {
 
   return (
     <div className="app">
+      {/* Toast notifications */}
+      <ToastContainer />
+
       {/* Interactive Tour */}
       <InteractiveTour onSelectDemoSession={handleSelectDemoSession} />
 
@@ -377,6 +410,9 @@ function App() {
                 onPaneClick={(id) => { activePaneIdRef.current = id; setActivePaneId(id); }}
                 onInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
                 onPaneResize={(paneId, cols, rows) => currentSession && sendResize(currentSession, cols, rows, paneId)}
+                sessionLabel={currentSessionInfo?.label || null}
+                status={currentSessionInfo?.status || 'offline'}
+                connectionStatus={isDemoSession ? 'connected' : status}
                 theme={theme}
                 isLoading={isLoadingSession}
               />
@@ -389,6 +425,7 @@ function App() {
                 onInput={isDemoSession ? handleDemoInput : (data) => currentSession && sendKeys(currentSession, data, activePaneId || undefined)}
                 onResize={(cols, rows) => !isDemoSession && currentSession && sendResize(currentSession, cols, rows)}
                 onFileClick={handleFileRequest}
+                onShare={handleShareFromHeader}
                 theme={theme}
                 isLoading={isLoadingSession}
               />
@@ -396,6 +433,8 @@ function App() {
             <CommandBar
               onSend={handleSendCommand}
               disabled={!currentSession || (!isDemoSession && currentSessionInfo?.status !== 'online')}
+              collapsed={commandBarHidden}
+              onToggle={() => setCommandBarHidden(h => !h)}
             />
           </>
         )}
