@@ -51,6 +51,7 @@ export function Terminal({
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [keyboardHidden, setKeyboardHidden] = useState(false);
 
   // Cleanup on unmount or session change
   useEffect(() => {
@@ -183,7 +184,9 @@ export function Terminal({
   const writeToTerminal = useCallback((data: string) => {
     if (xtermRef.current && isReady) {
       try {
-        xtermRef.current.write(transformSnapshotForWrite(data));
+        xtermRef.current.write(transformSnapshotForWrite(data), () => {
+          xtermRef.current?.scrollToBottom();
+        });
       } catch (e) {
         console.error('Failed to write to terminal:', e);
       }
@@ -208,20 +211,53 @@ export function Terminal({
         </div>
         <div className="header-right">
           {sessionId && (
-            <span className={`session-status ${status}`}>
-              {status === 'online' ? 'Connected' : (
-                <>
-                  Disconnected — <a href="mailto:devload@sessioncast.io" className="support-link">Help</a>
-                </>
-              )}
-            </span>
+            <>
+              <button
+                className={`keyboard-toggle ${keyboardHidden ? 'hidden-state' : ''}`}
+                onClick={() => {
+                  const textarea = terminalRef.current?.querySelector('textarea');
+                  if (keyboardHidden) {
+                    textarea?.focus();
+                    setKeyboardHidden(false);
+                  } else {
+                    textarea?.blur();
+                    setKeyboardHidden(true);
+                  }
+                }}
+                title={keyboardHidden ? 'Show keyboard' : 'Hide keyboard'}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="14" rx="2" />
+                  <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
+                  {keyboardHidden && <line x1="2" y1="2" x2="22" y2="22" strokeWidth="2.5" />}
+                </svg>
+              </button>
+              <span className={`session-status ${status}`}>
+                {status === 'online' ? 'Connected' : (
+                  <>
+                    Disconnected — <a href="mailto:devload@sessioncast.io" className="support-link">Help</a>
+                  </>
+                )}
+              </span>
+            </>
           )}
         </div>
       </div>
       <div className="terminal-content">
         {sessionId ? (
           <>
-            <div ref={terminalRef} className="xterm-wrapper" />
+            <div
+              ref={terminalRef}
+              className="xterm-wrapper"
+              onTouchStart={keyboardHidden ? (e) => {
+                // Prevent xterm from focusing textarea when keyboard is hidden
+                const textarea = terminalRef.current?.querySelector('textarea');
+                if (textarea) {
+                  e.preventDefault();
+                  textarea.blur();
+                }
+              } : undefined}
+            />
             {isLoading && (
               <div className="terminal-loading-overlay">
                 <div className="terminal-loading-spinner" />

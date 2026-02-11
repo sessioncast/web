@@ -87,7 +87,8 @@
 
 .xterm-wrapper {
   flex: 1;
-  padding: 8px;
+  padding: 4px;
+  overflow: hidden;
 }
 
 .terminal-placeholder {
@@ -127,6 +128,30 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.keyboard-toggle {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  padding: 3px 8px;
+  cursor: pointer;
+  margin-right: 8px;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+
+.keyboard-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.keyboard-toggle.hidden-state {
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
+  border-color: var(--border-hover);
 }
 
 .support-link {
