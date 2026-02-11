@@ -1,0 +1,222 @@
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.share-modal {
+  background: var(--bg-secondary, #202123);
+  border-radius: 12px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.share-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.share-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary, #ececf1);
+}
+
+.share-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.share-modal-close:hover {
+  color: var(--text-primary, #ececf1);
+}
+
+.share-modal-body {
+  padding: 20px;
+}
+
+.share-modal-desc {
+  font-size: 13px;
+  color: var(--text-secondary, #9ca3af);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.share-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.share-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.share-mode-option:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.share-mode-option.selected {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.share-mode-option input[type="radio"] {
+  margin-top: 2px;
+  accent-color: #8b5cf6;
+}
+
+.share-mode-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.share-mode-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #ececf1);
+}
+
+.share-mode-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.share-email-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #ececf1);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.share-email-input:focus {
+  border-color: #8b5cf6;
+}
+
+.share-email-input::placeholder {
+  color: var(--text-secondary, #6b7280);
+}
+
+.share-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0 0 12px;
+}
+
+.share-create-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #8b5cf6;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.share-create-btn:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.share-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.share-expire-note {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  text-align: center;
+  margin: 12px 0 0;
+}
+
+/* Result state */
+.share-result {
+  text-align: center;
+}
+
+.share-success-icon {
+  color: #10b981;
+  margin-bottom: 8px;
+}
+
+.share-result-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #ececf1);
+  margin: 0 0 16px;
+}
+
+.share-url-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.share-url-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #ececf1);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+  min-width: 0;
+}
+
+.share-url-input:focus {
+  border-color: #8b5cf6;
+}
+
+.share-copy-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #a78bfa;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.share-copy-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+}

@@ -8,6 +8,7 @@ import { TokenManager } from './components/TokenManager';
 import { OnboardingGuide } from './components/OnboardingGuide';
 import { InteractiveTour } from './components/onboarding';
 import { FileViewer, type FileViewerContent, type FileTab } from './components/FileViewer';
+import { ShareModal } from './components/ShareModal';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useCtrlKey } from './hooks/useCtrlKey';
 import { useOnboardingStore } from './stores/OnboardingStore';
@@ -99,6 +100,9 @@ function App() {
   // FileViewer state
   const [fileViewerFiles, setFileViewerFiles] = useState<FileTab[]>([]);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+
+  // Share modal state
+  const [shareSessionId, setShareSessionId] = useState<string | null>(null);
 
   // Pane state
   const [activePaneId, setActivePaneId] = useState<string | null>(null);
@@ -311,6 +315,7 @@ function App() {
         onCreateSession={handleCreateSession}
         onKillSession={handleKillSession}
         onHideSession={handleHideSession}
+        onShareSession={setShareSessionId}
         updatedSessions={updatedSessions}
         userEmail={getEmailFromToken(authToken)}
       />
@@ -318,6 +323,13 @@ function App() {
         <TokenManager
           authToken={authToken}
           onClose={() => setShowTokenManager(false)}
+        />
+      )}
+      {shareSessionId && authToken && (
+        <ShareModal
+          sessionId={shareSessionId}
+          authToken={authToken}
+          onClose={() => setShareSessionId(null)}
         />
       )}
       <div className="main-content">

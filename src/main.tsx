@@ -1,7 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import * as Sentry from '@sentry/react'
 import App from './App'
+import { ShareViewer } from './pages/ShareViewer'
 import { LanguageProvider } from './i18n'
 
 Sentry.init({
@@ -22,7 +24,12 @@ Sentry.init({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LanguageProvider>
-      <App />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/share/:token" element={<ShareViewer />} />
+          <Route path="/*" element={<App />} />
+        </Routes>
+      </BrowserRouter>
     </LanguageProvider>
   </React.StrictMode>,
 )

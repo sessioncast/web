@@ -99,6 +99,28 @@ export const translations = {
     tourFinish: '완료',
     tourClose: '닫기',
     restartTour: '투어 다시 보기',
+
+    // Share
+    shareButton: '공유',
+    shareTitle: '세션 공유',
+    shareDescription: '읽기 전용 링크를 생성하여 다른 사람과 터미널 세션을 공유하세요.',
+    shareModePublic: '링크로 누구나',
+    shareModePublicDesc: '링크만 있으면 누구나 볼 수 있습니다',
+    shareModeEmail: '특정 이메일만',
+    shareModeEmailDesc: '지정한 이메일로 로그인한 사용자만 볼 수 있습니다',
+    shareEmailPlaceholder: '이메일 주소 입력',
+    shareCreateLink: '링크 생성',
+    shareCreating: '생성 중...',
+    shareLinkReady: '공유 링크가 생성되었습니다!',
+    shareExpireNote: '이 링크는 10분 후 만료됩니다.',
+    shareLoading: '공유 링크 확인 중...',
+    shareReadOnly: '읽기 전용',
+    shareDisconnected: '연결 끊김',
+    shareInvalidTitle: '유효하지 않은 링크',
+    shareInvalidMessage: '이 공유 링크는 유효하지 않거나 만료되었습니다.',
+    shareExpiredTitle: '링크 만료',
+    shareExpiredMessage: '이 공유 링크가 만료되었습니다. 세션 소유자에게 새 링크를 요청하세요.',
+    shareErrorMessage: '공유 링크를 확인하는 중 오류가 발생했습니다.',
   },
 
   en: {
@@ -199,6 +221,28 @@ export const translations = {
     tourFinish: 'Finish',
     tourClose: 'Close',
     restartTour: 'Take the Tour Again',
+
+    // Share
+    shareButton: 'Share',
+    shareTitle: 'Share Session',
+    shareDescription: 'Create a read-only link to share your terminal session with others.',
+    shareModePublic: 'Anyone with link',
+    shareModePublicDesc: 'Anyone with the link can view this session',
+    shareModeEmail: 'Specific email only',
+    shareModeEmailDesc: 'Only the specified email can view after logging in',
+    shareEmailPlaceholder: 'Enter email address',
+    shareCreateLink: 'Create Link',
+    shareCreating: 'Creating...',
+    shareLinkReady: 'Share link created!',
+    shareExpireNote: 'This link expires in 10 minutes.',
+    shareLoading: 'Verifying share link...',
+    shareReadOnly: 'Read-only',
+    shareDisconnected: 'Disconnected',
+    shareInvalidTitle: 'Invalid Link',
+    shareInvalidMessage: 'This share link is invalid or has expired.',
+    shareExpiredTitle: 'Link Expired',
+    shareExpiredMessage: 'This share link has expired. Ask the session owner for a new link.',
+    shareErrorMessage: 'An error occurred while verifying the share link.',
   }
 };
 

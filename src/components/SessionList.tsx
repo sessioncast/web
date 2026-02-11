@@ -17,11 +17,12 @@ interface SessionListProps {
   onCreateSession?: (machineId: string, sessionName: string) => void;
   onKillSession?: (sessionId: string) => void;
   onHideSession?: (sessionId: string) => void;
+  onShareSession?: (sessionId: string) => void;
   updatedSessions?: Set<string>;
   userEmail?: string | null;
 }
 
-export function SessionList({ sessions, currentSession, selectedPane, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, updatedSessions, userEmail }: SessionListProps) {
+export function SessionList({ sessions, currentSession, selectedPane, onSelectSession, theme, onToggleTheme, onLogout, isOpen, onCreateSession, onKillSession, onHideSession, onShareSession, updatedSessions, userEmail }: SessionListProps) {
   const { t, lang, setLang } = useLanguage();
   const { startTour } = useOnboardingStore();
   const [creatingForMachine, setCreatingForMachine] = useState<string | null>(null);
@@ -180,6 +181,11 @@ export function SessionList({ sessions, currentSession, selectedPane, onSelectSe
                         </button>
                         {isMenuOpen && (
                           <div className="session-menu">
+                            {onShareSession && session.status === 'online' && (
+                              <button onClick={(e) => { e.stopPropagation(); onShareSession(session.id); setMenuOpenFor(null); }}>
+                                {t('shareButton')}
+                              </button>
+                            )}
                             {onHideSession && (
                               <button onClick={(e) => handleHideSession(e, session.id)}>
                                 {lang === 'ko' ? '숨기기' : 'Hide'}
