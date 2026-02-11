@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SessionInfo } from '../types';
 import { useLanguage } from '../i18n';
 import { useOnboardingStore } from '../stores/OnboardingStore';
@@ -30,6 +30,18 @@ export function SessionList({ sessions, currentSession, selectedPane, onSelectSe
   const [newSessionName, setNewSessionName] = useState('');
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+
+  // Close menu on outside click
+  const handleOutsideClick = useCallback(() => {
+    if (menuOpenFor) setMenuOpenFor(null);
+  }, [menuOpenFor]);
+
+  useEffect(() => {
+    if (menuOpenFor) {
+      document.addEventListener('click', handleOutsideClick);
+      return () => document.removeEventListener('click', handleOutsideClick);
+    }
+  }, [menuOpenFor, handleOutsideClick]);
 
   const handleStartTour = () => {
     startTour();
@@ -204,17 +216,15 @@ export function SessionList({ sessions, currentSession, selectedPane, onSelectSe
                       className={`session-item ${currentSession === session.id ? 'active' : ''} ${hasUpdate ? 'has-update' : ''}`}
                       onClick={() => onSelectSession(session.id, hasMultiplePanes ? 'layout' : undefined)}
                     >
+                      <span className={`status-dot ${session.status}`} />
+                      <span className="session-label">{session.label || session.id}</span>
                       {hasMultiplePanes && (
-                        <span className="tree-toggle" onClick={(e) => toggleExpanded(session.id, e)}>
+                        <span className="pane-count-toggle" onClick={(e) => toggleExpanded(session.id, e)}>
+                          <span>{session.panes!.length}</span>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
                             <polyline points="9 18 15 12 9 6"/>
                           </svg>
                         </span>
-                      )}
-                      <span className={`status-dot ${session.status}`} />
-                      <span className="session-label">{session.label || session.id}</span>
-                      {hasMultiplePanes && (
-                        <span className="pane-count">{session.panes!.length}</span>
                       )}
                       {hasUpdate && <span className="update-indicator" />}
                       {(onKillSession || onHideSession) && (
