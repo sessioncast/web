@@ -1,0 +1,117 @@
+.active-share-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(139, 92, 246, 0.08);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.active-share-bar.collapsed {
+  padding: 3px 12px;
+}
+
+.active-share-bar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #a78bfa;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.active-share-bar-toggle:hover {
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.active-share-bar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.active-share-bar-label {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.active-share-bar-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.active-share-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.active-share-bar-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #d1d5db;
+}
+
+.asb-email {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #a78bfa;
+  padding: 0 3px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 2px;
+}
+
+.active-share-bar-timer {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #9ca3af;
+}
+
+.active-share-bar-timer.warning {
+  color: #f59e0b;
+}
+
+.active-share-bar-copy {
+  padding: 1px 6px;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 3px;
+  background: rgba(139, 92, 246, 0.08);
+  color: #a78bfa;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.active-share-bar-copy:hover {
+  background: rgba(139, 92, 246, 0.2);
+}

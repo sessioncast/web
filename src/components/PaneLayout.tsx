@@ -13,6 +13,7 @@ interface PaneLayoutProps {
   activePaneId: string | null;
   onPaneClick: (paneId: string) => void;
   onInput: (data: string, paneId: string) => void;
+  onPaneResize?: (paneId: string, cols: number, rows: number) => void;
   theme: 'dark' | 'light';
   isLoading?: boolean;
 }
@@ -33,7 +34,7 @@ const lightTheme = {
   selectionBackground: '#b4d5fe',
 };
 
-export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, theme, isLoading }: PaneLayoutProps) {
+export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onInput, onPaneResize, theme, isLoading }: PaneLayoutProps) {
   const termRefs = useRef<Map<string, { xterm: XTerm; fitAddon: FitAddon }>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +70,7 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
         if (el) {
           const xterm = new XTerm({
             cursorBlink: false,
-            fontSize: 10,
+            fontSize: 12,
             fontFamily: 'Menlo, Monaco, "Courier New", monospace',
             scrollback: 0,
             theme: theme === 'light' ? lightTheme : darkTheme,
@@ -81,8 +82,6 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
           xterm.onData((data) => {
             onInput(data, pane.id);
           });
-
-          try { fitAddon.fit(); } catch {}
 
           termRefs.current.set(pane.id, { xterm, fitAddon });
         }
@@ -117,18 +116,25 @@ export function PaneLayout({ panes, paneScreens, activePaneId, onPaneClick, onIn
     }
   }, [theme]);
 
-  // Fit terminals on resize
+  // Fit terminals to container and send resize to tmux
   useEffect(() => {
     const handleResize = () => {
-      for (const ref of termRefs.current.values()) {
-        try { ref.fitAddon.fit(); } catch {}
+      for (const [paneId, ref] of termRefs.current.entries()) {
+        try {
+          ref.fitAddon.fit();
+          const cols = ref.xterm.cols;
+          const rows = ref.xterm.rows;
+          if (onPaneResize && cols > 0 && rows > 0) {
+            onPaneResize(paneId, cols, rows);
+          }
+        } catch {}
       }
     };
     window.addEventListener('resize', handleResize);
-    // Fit after a short delay to allow layout to settle
-    setTimeout(handleResize, 100);
+    // Fit after layout settles
+    setTimeout(handleResize, 200);
     return () => window.removeEventListener('resize', handleResize);
-  }, [panes.map(p => p.id).join(',')]);
+  }, [panes.map(p => p.id).join(','), onPaneResize]);
 
   return (
     <div ref={containerRef} className="pane-container">

@@ -376,6 +376,7 @@ function App() {
                 activePaneId={activePaneId}
                 onPaneClick={(id) => { activePaneIdRef.current = id; setActivePaneId(id); }}
                 onInput={(data, paneId) => currentSession && sendKeys(currentSession, data, paneId)}
+                onPaneResize={(paneId, cols, rows) => currentSession && sendResize(currentSession, cols, rows, paneId)}
                 theme={theme}
                 isLoading={isLoadingSession}
               />

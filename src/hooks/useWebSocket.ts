@@ -300,15 +300,19 @@ export function useWebSocket({
     }
   }, []);
 
-  const sendResize = useCallback((sessionId: string, cols: number, rows: number) => {
+  const sendResize = useCallback((sessionId: string, cols: number, rows: number, paneId?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const meta: Record<string, string> = {
+        cols: String(cols),
+        rows: String(rows),
+      };
+      if (paneId) {
+        meta.pane = paneId;
+      }
       wsRef.current.send(JSON.stringify({
         type: 'resize',
         session: sessionId,
-        meta: {
-          cols: String(cols),
-          rows: String(rows),
-        },
+        meta,
       }));
     }
   }, []);

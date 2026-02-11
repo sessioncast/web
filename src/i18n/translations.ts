@@ -125,6 +125,13 @@ export const translations = {
     shareLoginPrompt: '공유 세션을 보려면 SessionCast에 로그인해주세요.',
     shareEmailDeniedTitle: '접근 권한 없음',
     shareEmailDeniedMessage: '이 공유 링크는 특정 이메일에게만 허용되어 있습니다.',
+    shareActiveLinks: '활성 공유 링크',
+    shareNoActiveLinks: '활성 공유 링크가 없습니다',
+    shareNewLink: '새 링크 만들기',
+    shareEmailTagHint: '이메일 입력 후 Enter 또는 쉼표(,)로 추가',
+    shareModeEmailDescMulti: '지정한 이메일로 로그인한 사용자만 볼 수 있습니다',
+    sharePublicLabel: '누구나',
+    shareRemainingTime: '남은 시간',
   },
 
   en: {
@@ -251,6 +258,13 @@ export const translations = {
     shareLoginPrompt: 'Please sign in to SessionCast to view this shared session.',
     shareEmailDeniedTitle: 'Access Denied',
     shareEmailDeniedMessage: 'This share link is restricted to a specific email address.',
+    shareActiveLinks: 'Active Share Links',
+    shareNoActiveLinks: 'No active share links',
+    shareNewLink: 'Create New Link',
+    shareEmailTagHint: 'Press Enter or comma to add email',
+    shareModeEmailDescMulti: 'Only specified emails can view after logging in',
+    sharePublicLabel: 'Anyone',
+    shareRemainingTime: 'Remaining',
   }
 };
 
