@@ -121,6 +121,10 @@ export const translations = {
     shareExpiredTitle: '링크 만료',
     shareExpiredMessage: '이 공유 링크가 만료되었습니다. 세션 소유자에게 새 링크를 요청하세요.',
     shareErrorMessage: '공유 링크를 확인하는 중 오류가 발생했습니다.',
+    shareLoginRequired: '로그인이 필요합니다',
+    shareLoginPrompt: '공유 세션을 보려면 SessionCast에 로그인해주세요.',
+    shareEmailDeniedTitle: '접근 권한 없음',
+    shareEmailDeniedMessage: '이 공유 링크는 특정 이메일에게만 허용되어 있습니다.',
   },
 
   en: {
@@ -243,6 +247,10 @@ export const translations = {
     shareExpiredTitle: 'Link Expired',
     shareExpiredMessage: 'This share link has expired. Ask the session owner for a new link.',
     shareErrorMessage: 'An error occurred while verifying the share link.',
+    shareLoginRequired: 'Login Required',
+    shareLoginPrompt: 'Please sign in to SessionCast to view this shared session.',
+    shareEmailDeniedTitle: 'Access Denied',
+    shareEmailDeniedMessage: 'This share link is restricted to a specific email address.',
   }
 };
 

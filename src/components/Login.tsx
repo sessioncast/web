@@ -96,6 +96,15 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.access_token);
+
+      // Check if we need to redirect back to a share page
+      const shareRedirect = sessionStorage.getItem('share_redirect');
+      if (shareRedirect) {
+        sessionStorage.removeItem('share_redirect');
+        window.location.href = shareRedirect;
+        return;
+      }
+
       onLoginSuccess(data.access_token);
       window.history.replaceState({}, document.title, '/');
     } catch (err) {
