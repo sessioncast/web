@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n';
-import { AUTH_URL } from '../config/env';
+import { AUTH_URL, API_URL } from '../config/env';
 import './Login.css';
 
 interface LoginProps {
@@ -96,6 +96,17 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.access_token);
+
+      // Call Platform API to trigger user auto-registration
+      // This ensures user appears in admin dashboard
+      try {
+        await fetch(`${API_URL}/api/users/me`, {
+          headers: { 'Authorization': `Bearer ${data.access_token}` }
+        });
+      } catch (e) {
+        // Non-critical - continue with login
+        console.warn('Platform API call failed (non-critical):', e);
+      }
 
       // Check if we need to redirect back to a share page
       const shareRedirect = sessionStorage.getItem('share_redirect');
